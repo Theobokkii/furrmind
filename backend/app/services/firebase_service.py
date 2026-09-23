@@ -7,10 +7,14 @@ from app.config import settings
 
 # Global Firestore client
 _db = None
+_initialized = False
 
 def init_firebase():
     """Initialize Firebase Admin SDK."""
-    global _db
+    global _db, _initialized
+    if _initialized:
+        return
+    _initialized = True
     
     # Avoid re-initialization if already initialized
     if not firebase_admin._apps:
@@ -20,12 +24,14 @@ def init_firebase():
             cred = credentials.Certificate(cred_path)
             firebase_admin.initialize_app(cred)
             print(f"Firebase initialized with credentials from {cred_path}")
-        else:
-            print(f"WARNING: Firebase credentials not found at {cred_path}. Using default.")
+        elif os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") and os.path.exists(os.environ["GOOGLE_APPLICATION_CREDENTIALS"]):
             try:
                 firebase_admin.initialize_app()
+                print("Firebase initialized with default credentials.")
             except Exception as e:
-                print(f"Failed to initialize Firebase without credentials: {e}")
+                print(f"Failed to initialize Firebase with default credentials: {e}")
+        else:
+            print(f"INFO: Firebase credentials file not found at '{cred_path}'. Operating in local fallback mode.")
                 
     # Initialize Firestore client
     try:

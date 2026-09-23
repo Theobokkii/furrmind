@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     jwt_secret: str = "super_secret_key_change_in_prod"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24 * 7 # 7 days
+    refresh_token_expire_days: int = 30
+    otp_expire_minutes: int = 10
     
     # Firebase
     firebase_credentials_path: str = "firebase-credentials.json"
