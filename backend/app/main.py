@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import health, predict, reframe, auth
+from app.routers import health, predict, reframe, auth, journal
 from app.services.firebase_service import init_firebase
 
 
@@ -33,3 +33,4 @@ app.include_router(health.router)
 app.include_router(predict.router)
 app.include_router(reframe.router)
 app.include_router(auth.router)
+app.include_router(journal.router)

@@ -88,3 +88,43 @@ class UserProfile(BaseModel):
 class MessageResponse(BaseModel):
     message: str
     success: bool = True
+
+
+# --- Journal & Mood Schemas ---
+
+class JournalCreateRequest(BaseModel):
+    content: str = Field(..., min_length=1, description="Journal entry text (also used for ML prediction)")
+    title: Optional[str] = Field(None, max_length=200)
+    mood_score: Optional[int] = Field(None, ge=1, le=10, description="Mood score 1-10")
+    tags: Optional[List[str]] = Field(default_factory=list)
+
+
+class JournalEntryResponse(BaseModel):
+    id: str
+    user_id: str
+    title: str
+    content: str
+    mood_score: Optional[int] = None
+    distortions: List[dict] = []
+    reframe: str = ""
+    tags: List[str] = []
+    created_at: str
+    updated_at: str
+
+
+class MoodLogRequest(BaseModel):
+    level: int = Field(..., ge=1, le=10, description="Mood level 1 (very low) to 10 (excellent)")
+    note: Optional[str] = Field(None, max_length=500)
+
+
+class MoodEntryResponse(BaseModel):
+    id: str
+    user_id: str
+    level: int
+    note: str
+    created_at: str
+
+
+class UserProfileUpdateRequest(BaseModel):
+    display_name: Optional[str] = Field(None, max_length=50)
+    photo_url: Optional[str] = None
