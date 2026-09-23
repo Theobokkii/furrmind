@@ -1,0 +1,14 @@
+torch>=2.4.0
+transformers>=4.44.0
+datasets>=2.20.0
+scikit-learn>=1.5.0
+<<<<<<< Updated upstream
+onnx>=1.16.0
+=======
+onnx>=1.16.0,<1.18.0
+>>>>>>> Stashed changes
+onnxruntime>=1.19.0
+numpy>=1.26.0
+pandas>=2.2.0
+accelerate>=0.33.0
+tqdm>=4.66.0
