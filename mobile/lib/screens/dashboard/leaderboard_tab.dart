@@ -77,12 +77,22 @@ class LeaderboardTab extends ConsumerWidget {
                 ),
                 child: Column(
                   children: [
-                    Text(
-                      leagueName,
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const SizedBox(width: 48), 
+                        Text(
+                          leagueName,
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.info_outline_rounded, color: Colors.white),
+                          onPressed: () => _showRankLadder(context),
+                        ),
+                      ],
                     ).animate().fadeIn().slideY(begin: 0.2, end: 0),
                     const SizedBox(height: 16),
                     Row(
@@ -177,6 +187,63 @@ class _StatBox extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+void _showRankLadder(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (context) {
+      return Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Rank Ladder', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            const _RankItem(icon: '💎', title: 'Diamond League', points: '1000+ XP', color: Colors.cyan),
+            const _RankItem(icon: '🏆', title: 'Platinum League', points: '600+ XP', color: Colors.blueGrey),
+            const _RankItem(icon: '🥇', title: 'Gold League', points: '300+ XP', color: Colors.amber),
+            const _RankItem(icon: '🥈', title: 'Silver League', points: '100+ XP', color: Colors.grey),
+            const _RankItem(icon: '🥉', title: 'Bronze League', points: '0+ XP', color: Colors.brown),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Close'),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+class _RankItem extends StatelessWidget {
+  final String icon;
+  final String title;
+  final String points;
+  final Color color;
+  const _RankItem({required this.icon, required this.title, required this.points, required this.color});
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.2),
+          shape: BoxShape.circle,
+        ),
+        child: Text(icon, style: const TextStyle(fontSize: 24)),
+      ),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+      trailing: Text(points, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
     );
   }
 }

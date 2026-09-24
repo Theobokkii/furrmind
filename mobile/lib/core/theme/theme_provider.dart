@@ -4,12 +4,12 @@ import 'package:hive_flutter/hive_flutter.dart';
 class ThemeNotifier extends StateNotifier<ThemeMode> {
   static const _boxName = 'settings';
   static const _key = 'themeMode';
-  ThemeNotifier() : super(ThemeMode.system) {
+  ThemeNotifier() : super(ThemeMode.light) {
     _loadFromStorage();
   }
   Future<void> _loadFromStorage() async {
     final box = await Hive.openBox(_boxName);
-    final stored = box.get(_key, defaultValue: 'system');
+    final stored = box.get(_key, defaultValue: 'light');
     state = _fromString(stored);
   }
   Future<void> setThemeMode(ThemeMode mode) async {
@@ -45,3 +45,5 @@ class ThemeNotifier extends StateNotifier<ThemeMode> {
 final themeProvider = StateNotifierProvider<ThemeNotifier, ThemeMode>((ref) {
   return ThemeNotifier();
 });
+
+final previewThemeProvider = StateProvider<String?>((ref) => null);

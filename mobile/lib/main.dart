@@ -8,6 +8,7 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'core/services/mock_data_service.dart';
+import 'core/services/gamification_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
@@ -26,11 +27,14 @@ class FurrmindApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeProvider);
+    final profileAsync = ref.watch(userProfileProvider);
+    final previewTheme = ref.watch(previewThemeProvider);
+    final activeTheme = previewTheme ?? profileAsync.value?.activeTheme ?? 'default';
     return MaterialApp.router(
       title: 'FurrMind',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
+      theme: AppTheme.getTheme(activeTheme, brightness: Brightness.light),
+      darkTheme: AppTheme.getTheme(activeTheme, brightness: Brightness.dark),
       themeMode: themeMode,
       routerConfig: appRouter,
     );

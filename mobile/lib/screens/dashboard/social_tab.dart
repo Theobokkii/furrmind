@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/services/gamification_service.dart';
+import '../../core/utils/image_helper.dart';
 import 'chat_tab.dart'; 
 import 'package:go_router/go_router.dart';
 class SocialTab extends ConsumerWidget {
@@ -67,14 +68,34 @@ class _FriendsList extends StatelessWidget {
       itemCount: friendIds.length,
       itemBuilder: (context, index) {
         final friendName = friendIds[index];
+        // Get mock details for the friend if they exist in discover list
+        final mockDiscoverList = [
+          {'name': 'Jordan_99', 'avatar': 'https://picsum.photos/seed/jordan/150', 'level': 5},
+          {'name': 'AlexTheGreat', 'avatar': 'https://picsum.photos/seed/alex/150', 'level': 8},
+          {'name': 'TaylorSwift123', 'avatar': '👩🏼', 'level': 12},
+          {'name': 'Casey_Jones', 'avatar': 'https://picsum.photos/seed/casey/150', 'level': 3},
+          {'name': 'SammyBoy', 'avatar': '🐶', 'level': 2},
+          {'name': 'Riley_R', 'avatar': 'https://picsum.photos/seed/riley/150', 'level': 6},
+        ];
+        
+        final mockDetails = mockDiscoverList.firstWhere(
+          (u) => u['name'] == friendName, 
+          orElse: () => {'name': friendName, 'avatar': '🐾', 'level': 1}
+        );
+        
+        final avatar = mockDetails['avatar'] as String;
+        final level = mockDetails['level'] as int;
+
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
           child: ListTile(
-            leading: const CircleAvatar(
-              child: Text('🐾'),
+            leading: CircleAvatar(
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+              backgroundImage: getAvatarImageProvider(avatar),
+              child: buildAvatar(avatar, fontSize: 20),
             ),
             title: Text(friendName, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: const Text('Online'),
+            subtitle: Text('Level $level • Online'),
             trailing: IconButton(
               icon: const Icon(Icons.chat_bubble_rounded, color: Colors.blueAccent),
               onPressed: () {
@@ -88,15 +109,20 @@ class _FriendsList extends StatelessWidget {
   }
 }
 class _DiscoverList extends ConsumerWidget {
-  final List<String> _mockDiscover = [
-    'Jordan_99', 'AlexTheGreat', 'TaylorSwift123', 'Casey_Jones', 'SammyBoy', 'Riley_R'
+  final List<Map<String, dynamic>> _mockDiscover = [
+    {'name': 'Jordan_99', 'pronouns': 'he/him', 'level': 5, 'avatar': 'https://picsum.photos/seed/jordan/150'},
+    {'name': 'AlexTheGreat', 'pronouns': 'they/them', 'level': 8, 'avatar': 'https://picsum.photos/seed/alex/150'},
+    {'name': 'TaylorSwift123', 'pronouns': 'she/her', 'level': 12, 'avatar': '👩🏼'},
+    {'name': 'Casey_Jones', 'pronouns': 'he/they', 'level': 3, 'avatar': 'https://picsum.photos/seed/casey/150'},
+    {'name': 'SammyBoy', 'pronouns': 'he/him', 'level': 2, 'avatar': '🐶'},
+    {'name': 'Riley_R', 'pronouns': 'she/they', 'level': 6, 'avatar': 'https://picsum.photos/seed/riley/150'},
   ];
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(userProfileProvider);
     return profileAsync.when(
       data: (profile) {
-        final toDiscover = _mockDiscover.where((name) => !profile.friendIds.contains(name)).toList();
+        final toDiscover = _mockDiscover.where((user) => !profile.friendIds.contains(user['name'])).toList();
         if (toDiscover.isEmpty) {
           return const Center(child: Text('No more people to discover right now.'));
         }
@@ -104,16 +130,42 @@ class _DiscoverList extends ConsumerWidget {
           padding: const EdgeInsets.all(16),
           itemCount: toDiscover.length,
           itemBuilder: (context, index) {
-            final name = toDiscover[index];
+            final user = toDiscover[index];
+            final name = user['name'] as String;
+            final pronouns = user['pronouns'] as String;
+            final level = user['level'] as int;
+            final avatar = user['avatar'] as String;
+
             return Card(
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
                 leading: CircleAvatar(
                   backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-                  child: Text(name[0].toUpperCase()),
+                  backgroundImage: getAvatarImageProvider(avatar),
+                  child: buildAvatar(avatar, fontSize: 20),
                 ),
-                title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text('Suggested Friend'),
+                title: Row(
+                  children: [
+                    Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        pronouns,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                subtitle: Text('Level $level • Suggested Friend'),
                 trailing: ElevatedButton.icon(
                   icon: const Icon(Icons.person_add_rounded, size: 18),
                   label: const Text('Add'),

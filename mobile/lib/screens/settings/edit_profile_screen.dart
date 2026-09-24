@@ -11,6 +11,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _pronounsController = TextEditingController();
   final _bioController = TextEditingController();
   String _selectedEmoji = '👤';
+  String _selectedBanner = 'default';
   bool _isLoading = false;
   final List<String> _avatars = [
     '👤', '🦊', '🐱', '🐶', '🐼', '🐨', '🐯', '🦁', '🐻', '🐰',
@@ -29,6 +30,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       _pronounsController.text = profile.pronouns;
       _bioController.text = profile.bio;
       _selectedEmoji = profile.avatarEmoji;
+      _selectedBanner = profile.bannerUrl;
       if (!_avatars.contains(_selectedEmoji)) {
         _avatars.insert(0, _selectedEmoji);
       }
@@ -51,6 +53,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       avatarEmoji: _selectedEmoji,
       pronouns: _pronounsController.text.trim(),
       bio: _bioController.text.trim(),
+      bannerUrl: _selectedBanner,
     );
     ref.invalidate(userProfileProvider);
     if (mounted) {
@@ -190,6 +193,50 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 );
               }).toList(),
             ),
+            const SizedBox(height: 32),
+            Text(
+              'Profile Banner',
+              style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 80,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: ['default', 'ocean', 'sunset', 'christmas', 'halloween', 'neon_glow'].map((bannerId) {
+                  final isSelected = _selectedBanner == bannerId;
+                  Color getBannerColor() {
+                    switch (bannerId) {
+                      case 'ocean': return const Color(0xFF0284C7);
+                      case 'sunset': return const Color(0xFFF97316);
+                      case 'christmas': return const Color(0xFFDC2626);
+                      case 'halloween': return const Color(0xFF9C27B0);
+                      case 'neon_glow': return const Color(0xFF00E5FF);
+                      default: return const Color(0xFF818CF8);
+                    }
+                  }
+                  return GestureDetector(
+                    onTap: () => setState(() => _selectedBanner = bannerId),
+                    child: Container(
+                      width: 120,
+                      margin: const EdgeInsets.only(right: 12),
+                      decoration: BoxDecoration(
+                        color: getBannerColor().withValues(alpha: 0.8),
+                        borderRadius: BorderRadius.circular(12),
+                        border: isSelected ? Border.all(color: Colors.white, width: 3) : null,
+                      ),
+                      child: Center(
+                        child: Text(
+                          bannerId.toUpperCase(),
+                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 32),
           ],
         ),
       ),

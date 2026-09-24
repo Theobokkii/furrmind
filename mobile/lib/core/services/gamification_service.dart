@@ -36,6 +36,8 @@ class GamificationService {
     String? pronouns,
     String? bio,
     List<String>? friendIds,
+    String? bannerUrl,
+    String? activeTheme,
   }) async {
     final box = await _getProfileBox();
     final profile = await getProfile();
@@ -44,6 +46,8 @@ class GamificationService {
     if (pronouns != null) profile.pronouns = pronouns;
     if (bio != null) profile.bio = bio;
     if (friendIds != null) profile.friendIds = friendIds;
+    if (bannerUrl != null) profile.bannerUrl = bannerUrl;
+    if (activeTheme != null) profile.activeTheme = activeTheme;
     await box.put('current', profile);
   }
   int _calculateLevel(int points) {

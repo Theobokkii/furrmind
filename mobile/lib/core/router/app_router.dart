@@ -7,7 +7,7 @@ import '../../screens/dashboard/dashboard_screen.dart';
 import '../../screens/journal/journal_screen.dart';
 import '../../screens/history/history_screen.dart';
 import '../../screens/settings/settings_screen.dart';
-import '../../screens/settings/edit_profile_screen.dart';
+import '../../screens/profile/edit_profile_screen.dart';
 import '../../screens/chat/friend_chat_screen.dart';
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 final appRouter = GoRouter(

@@ -9,6 +9,7 @@ import '../../core/services/journal_storage.dart';
 import '../../core/services/mock_data_service.dart';
 import '../../core/services/gamification_service.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/image_helper.dart';
 import 'social_tab.dart';
 import 'leaderboard_tab.dart';
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -368,6 +369,7 @@ class _StreakCard extends StatelessWidget {
   }
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final streak = _calculateStreak();
     final totalEntries = entries.length;
     final withDistortions =
@@ -379,8 +381,8 @@ class _StreakCard extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              AppColors.lightPrimary,
-              AppColors.lightPrimary.withValues(alpha: 0.7),
+              theme.colorScheme.primary,
+              theme.colorScheme.primary.withValues(alpha: 0.7),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -388,7 +390,7 @@ class _StreakCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: AppColors.lightPrimary.withValues(alpha: 0.3),
+              color: theme.colorScheme.primary.withValues(alpha: 0.3),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -923,6 +925,16 @@ class _PatternRow extends StatelessWidget {
 }
 class _ProfileTab extends ConsumerWidget {
   const _ProfileTab();
+  Color _getBannerColor(String bannerId, ThemeData theme) {
+    switch (bannerId) {
+      case 'ocean': return const Color(0xFF86A789);
+      case 'sunset': return const Color(0xFFD5A760);
+      case 'christmas': return const Color(0xFFC97B7B);
+      case 'halloween': return const Color(0xFF978FAD);
+      case 'neon_glow': return const Color(0xFF7BA1A8);
+      default: return theme.colorScheme.primary;
+    }
+  }
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -930,42 +942,82 @@ class _ProfileTab extends ConsumerWidget {
     return SafeArea(
       child: RefreshIndicator(
         onRefresh: () async => ref.invalidate(userProfileProvider),
-        child: ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
-            const SizedBox(height: 16),
-            profileAsync.when(
-              data: (profile) => Column(
-                children: [
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: theme.colorScheme.primary,
-                          width: 2,
-                        ),
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: profileAsync.when(
+                data: (profile) => Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: theme.cardColor,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: theme.colorScheme.outlineVariant,
+                        width: 1.5,
                       ),
-                      child: CircleAvatar(
-                        radius: 48,
-                        backgroundColor:
-                            theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
-                        child: Text(
-                          profile.avatarEmoji,
-                          style: const TextStyle(fontSize: 42),
-                        ),
-                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        )
+                      ],
                     ),
-                  ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.8, 0.8), end: const Offset(1, 1)),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: RichText(
+                    child: Column(
+                      children: [
+                        Stack(
+                          alignment: Alignment.bottomCenter,
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          height: 140,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                            image: getBannerImageProvider(profile.bannerUrl) != null 
+                                ? DecorationImage(
+                                    image: getBannerImageProvider(profile.bannerUrl)!,
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
+                            gradient: getBannerImageProvider(profile.bannerUrl) == null 
+                                ? LinearGradient(
+                                    colors: [
+                                      _getBannerColor(profile.bannerUrl, theme).withValues(alpha: 0.5),
+                                      _getBannerColor(profile.bannerUrl, theme).withValues(alpha: 0.2),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  )
+                                : null,
+                          ),
+                        ),
+                        Positioned(
+                          bottom: -40,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: theme.scaffoldBackgroundColor,
+                            ),
+                            child: CircleAvatar(
+                              radius: 46,
+                              backgroundColor: theme.colorScheme.primaryContainer,
+                              backgroundImage: getAvatarImageProvider(profile.avatarEmoji),
+                              child: buildAvatar(profile.avatarEmoji, fontSize: 40),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 52),
+                    RichText(
                       text: TextSpan(
                         children: [
                           TextSpan(
                             text: profile.username,
-                            style: theme.textTheme.headlineMedium,
+                            style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
                           ),
                           if (profile.pronouns.isNotEmpty)
                             TextSpan(
@@ -978,135 +1030,176 @@ class _ProfileTab extends ConsumerWidget {
                         ],
                       ),
                     ),
-                  ),
-                  if (profile.bio.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Text(
-                        profile.bio,
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.textTheme.bodySmall?.color,
+                    if (profile.bio.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        child: Text(
+                          profile.bio,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            height: 1.4,
+                          ),
                         ),
                       ),
+                    ],
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _BadgeChip(
+                          icon: Icons.star_rounded,
+                          label: 'Level ${profile.currentLevel}',
+                          color: Colors.amber,
+                        ),
+                        const SizedBox(width: 8),
+                        _BadgeChip(
+                          icon: Icons.flash_on_rounded,
+                          label: '${profile.totalPoints} XP',
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        _BadgeChip(
+                          icon: Icons.people_alt_rounded,
+                          label: '${profile.friendIds.length} Friends',
+                          color: theme.colorScheme.secondary,
+                        ),
+                      ],
                     ),
-                  ],
-                  const SizedBox(height: 12),
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.secondaryContainer,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.star, color: Colors.orange[400], size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Level ${profile.currentLevel} • ${profile.totalPoints} pts',
-                            style: theme.textTheme.labelLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.onSecondaryContainer,
+                    const SizedBox(height: 32),
+                      ],
+                    ),
+                  ),
+                ).animate().fadeIn(duration: 400.ms),
+                loading: () => const SizedBox(height: 300, child: Center(child: CircularProgressIndicator())),
+                error: (_, _) => const SizedBox(height: 300),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  profileAsync.when(
+                    data: (profile) => profile.unlockedBadges.isNotEmpty ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Achievements',
+                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: profile.unlockedBadges.map((badge) => Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: theme.colorScheme.tertiary.withValues(alpha: 0.3)),
                             ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text('🏅', style: TextStyle(fontSize: 18)),
+                                const SizedBox(width: 8),
+                                Text(badge, style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          )).toList(),
+                        ),
+                        const SizedBox(height: 32),
+                      ],
+                    ) : const SizedBox.shrink(),
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, _) => const SizedBox.shrink(),
+                  ),
+                  Text(
+                    'Account',
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  _ProfileMenuItem(
+                    icon: Icons.edit_rounded,
+                    title: 'Edit Profile',
+                    subtitle: 'Update your bio, avatar, and details',
+                    onTap: () => context.push('/edit-profile'),
+                  ),
+                  _ProfileMenuItem(
+                    icon: Icons.history_rounded,
+                    title: 'Journal History',
+                    subtitle: 'Look back at your past entries',
+                    onTap: () => context.push('/history'),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Preferences',
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  _ProfileMenuItem(
+                    icon: Icons.settings_outlined,
+                    title: 'Settings',
+                    subtitle: 'Theme, API config, notifications',
+                    onTap: () => context.push('/settings'),
+                  ),
+                  _ProfileMenuItem(
+                    icon: Icons.info_outline_rounded,
+                    title: 'About FurrMind',
+                    subtitle: 'Version 1.0.0',
+                    onTap: () {
+                      showAboutDialog(
+                        context: context,
+                        applicationName: 'FurrMind',
+                        applicationVersion: '1.0.0',
+                        applicationIcon: const Text('🐾', style: TextStyle(fontSize: 40)),
+                        children: [
+                          const Text(
+                            'An AI-powered CBT journaling companion that helps you detect cognitive distortions and reframe negative thoughts into balanced perspectives.',
                           ),
                         ],
-                      ),
-                    ),
+                      );
+                    },
                   ),
-                    const SizedBox(height: 24),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Friends',
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Card(
-                      child: ListTile(
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primaryContainer,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.people_alt_rounded),
-                        ),
-                        title: const Text('My Friends'),
-                        trailing: Text(
-                          '${profile.friendIds.length}',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (profile.unlockedBadges.isNotEmpty) ...[
-                      const SizedBox(height: 24),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Badges',
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: profile.unlockedBadges.map((badge) => Chip(
-                        avatar: const Text('🏅'),
-                        label: Text(badge),
-                        backgroundColor: theme.colorScheme.tertiaryContainer,
-                      )).toList(),
-                    ),
-                  ]
-                ],
+                  const SizedBox(height: 80),
+                ]),
               ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, _) => const SizedBox(),
             ),
-            const SizedBox(height: 32),
-            _ProfileMenuItem(
-              icon: Icons.edit_rounded,
-              title: 'Edit Profile',
-              onTap: () => context.push('/edit-profile'),
-            ),
-            _ProfileMenuItem(
-              icon: Icons.history_rounded,
-              title: 'Journal History',
-              onTap: () => context.push('/history'),
-            ),
-            _ProfileMenuItem(
-              icon: Icons.settings_outlined,
-              title: 'Settings',
-              onTap: () => context.push('/settings'),
-            ),
-            _ProfileMenuItem(
-              icon: Icons.info_outline_rounded,
-              title: 'About FurrMind',
-              onTap: () {
-                showAboutDialog(
-                  context: context,
-                  applicationName: 'FurrMind',
-                  applicationVersion: '1.0.0',
-                  applicationIcon: const Text('🐾',
-                      style: TextStyle(fontSize: 40)),
-                  children: [
-                    const Text(
-                      'An AI-powered CBT journaling companion that helps you detect cognitive distortions and reframe negative thoughts into balanced perspectives.',
-                    ),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 80),
           ],
         ),
+      ),
+    );
+  }
+}
+class _BadgeChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  const _BadgeChip({required this.icon, required this.label, required this.color});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1114,10 +1207,12 @@ class _ProfileTab extends ConsumerWidget {
 class _ProfileMenuItem extends StatelessWidget {
   final IconData icon;
   final String title;
+  final String? subtitle;
   final VoidCallback onTap;
   const _ProfileMenuItem({
     required this.icon,
     required this.title,
+    this.subtitle,
     required this.onTap,
   });
   @override
@@ -1127,9 +1222,11 @@ class _ProfileMenuItem extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: Icon(icon, color: theme.colorScheme.primary),
-        title: Text(title),
-        trailing: const Icon(Icons.chevron_right_rounded),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: subtitle != null ? Text(subtitle!, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)) : null,
+        trailing: Icon(Icons.chevron_right_rounded, color: theme.colorScheme.onSurfaceVariant),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
         onTap: onTap,
       ),
     );

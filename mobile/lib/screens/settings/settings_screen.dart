@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/services/api_service.dart';
+import '../../core/services/gamification_service.dart';
 import '../../core/theme/theme_provider.dart';
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -100,6 +101,41 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ],
               ),
             ),
+          ),
+          const SizedBox(height: 28),
+          Text(
+            'UNLOCKABLE THEMES',
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ref.watch(userProfileProvider).when(
+            data: (profile) {
+              final previewTheme = ref.watch(previewThemeProvider);
+              final activeTheme = previewTheme ?? profile.activeTheme;
+              return Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      _ThemeSelectorItem(themeId: 'default', title: 'Sage Cream (Default)', requiredLevel: 1, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'default'),
+                      _ThemeSelectorItem(themeId: 'bamboo', title: 'Matcha Bamboo', requiredLevel: 1, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'bamboo'),
+                      _ThemeSelectorItem(themeId: 'marigold', title: 'Marigold Olive', requiredLevel: 2, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'marigold'),
+                      _ThemeSelectorItem(themeId: 'coastal', title: 'Coastal Breeze', requiredLevel: 3, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'coastal'),
+                      _ThemeSelectorItem(themeId: 'twilight', title: 'Twilight Lavender', requiredLevel: 4, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'twilight'),
+                    ],
+                  ),
+                ),
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (_, _) => const SizedBox.shrink(),
           ),
           const SizedBox(height: 28),
           Text(
@@ -244,6 +280,145 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: _buildBottomApplyBar(context, ref),
+    );
+  }
+
+  Widget _buildBottomApplyBar(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(userProfileProvider);
+    final previewThemeId = ref.watch(previewThemeProvider);
+    
+    return profileAsync.maybeWhen(
+      data: (profile) {
+        if (previewThemeId == null || previewThemeId == profile.activeTheme) {
+          return const SizedBox.shrink();
+        }
+        
+        // Define required levels
+        final requirements = {
+          'default': 1, 'bamboo': 1, 'marigold': 2, 'coastal': 3, 'twilight': 4
+        };
+        final requiredLevel = requirements[previewThemeId] ?? 1;
+
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 10,
+                offset: const Offset(0, -5),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Previewing Theme',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    'Save changes?',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: () => ref.read(previewThemeProvider.notifier).state = null,
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: () {
+                      if (profile.currentLevel < requiredLevel) {
+                        // Show middle popup error
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Level Required 🔒'),
+                            content: Text(
+                              'You need to reach Level $requiredLevel to unlock this theme. Keep journaling to level up!',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx),
+                                child: const Text('Okay'),
+                              ),
+                            ],
+                          ),
+                        );
+                      } else {
+                        // Save theme
+                        ref.read(gamificationProvider).updateProfile(activeTheme: previewThemeId);
+                        ref.invalidate(userProfileProvider);
+                        ref.read(previewThemeProvider.notifier).state = null;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Theme saved successfully ✨')),
+                        );
+                      }
+                    },
+                    child: const Text('Save'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+      orElse: () => const SizedBox.shrink(),
+    );
+  }
+}
+class _ThemeSelectorItem extends ConsumerWidget {
+  final String themeId;
+  final String title;
+  final int requiredLevel;
+  final int currentLevel;
+  final String activeTheme;
+  final VoidCallback onTap;
+
+  const _ThemeSelectorItem({
+    required this.themeId,
+    required this.title,
+    required this.requiredLevel,
+    required this.currentLevel,
+    required this.activeTheme,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isLocked = currentLevel < requiredLevel;
+    final isSelected = activeTheme == themeId;
+    final theme = Theme.of(context);
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(
+        isLocked 
+            ? Icons.lock_outline 
+            : (isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked),
+        color: isLocked ? Colors.grey : theme.colorScheme.primary,
+      ),
+      title: Text(
+        title, 
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isLocked ? Colors.grey : null,
+        ),
+      ),
+      trailing: isLocked 
+          ? Text('Lvl $requiredLevel', style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)) 
+          : null,
+      onTap: onTap,
     );
   }
 }

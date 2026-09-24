@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../core/theme/app_theme.dart';
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
   @override
@@ -18,18 +17,18 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1800),
+      duration: const Duration(milliseconds: 1500),
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+        curve: const Interval(0.0, 0.4, curve: Curves.easeOut), // 300ms fade
       ),
     );
-    _scaleAnimation = Tween<double>(begin: 0.7, end: 1.0).animate(
+    _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.0, 0.6, curve: Curves.easeOutBack),
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOut), // 400ms scale
       ),
     );
     _controller.forward();
@@ -56,16 +55,7 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.lightPrimary,
-              Color(0xFF4A3B8F),
-            ],
-          ),
-        ),
+        color: const Color(0xFFFAF7F2), // Warm Cream background
         child: Center(
           child: FadeTransition(
             opacity: _fadeAnimation,
@@ -75,51 +65,68 @@ class _SplashScreenState extends State<SplashScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(28),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
+                    padding: const EdgeInsets.all(24),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE8EFE9), // Sage tint
                       shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 30,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
                     ),
                     child: const Text(
-                      '🐾',
+                      '🐱', // Cato placeholder
                       style: TextStyle(fontSize: 64),
                     ),
                   ),
                   const SizedBox(height: 32),
-                  Text(
-                    'FurrMind',
-                    style: GoogleFonts.outfit(
-                      fontSize: 40,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      letterSpacing: 1.5,
+                  FadeTransition(
+                    opacity: Tween<double>(begin: 0.0, end: 1.0).animate(
+                      CurvedAnimation(
+                        parent: _controller,
+                        curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
+                      )
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Your CBT Journal Companion',
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      color: Colors.white70,
-                      letterSpacing: 0.5,
+                    child: Column(
+                      children: [
+                        Text(
+                          'FurrMind',
+                          style: GoogleFonts.fraunces(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF3D3229),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'A soft heart for clearer thinking.',
+                          style: GoogleFonts.caveat(
+                            fontSize: 20,
+                            color: const Color(0xFF6B5D4F),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 60),
-                  SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Colors.white.withValues(alpha: 0.6),
-                      ),
+                  FadeTransition(
+                    opacity: Tween<double>(begin: 0.0, end: 1.0).animate(
+                      CurvedAnimation(
+                        parent: _controller,
+                        curve: const Interval(0.5, 1.0, curve: Curves.easeOut),
+                      )
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(3, (index) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF7C9A7E), // Sage green
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        );
+                      }),
                     ),
                   ),
                 ],
