@@ -8,6 +8,8 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 }
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _usernameController = TextEditingController();
+  final _pronounsController = TextEditingController();
+  final _bioController = TextEditingController();
   String _selectedEmoji = '👤';
   bool _isLoading = false;
   final List<String> _avatars = [
@@ -24,6 +26,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final profile = await gamification.getProfile();
     setState(() {
       _usernameController.text = profile.username;
+      _pronounsController.text = profile.pronouns;
+      _bioController.text = profile.bio;
       _selectedEmoji = profile.avatarEmoji;
       if (!_avatars.contains(_selectedEmoji)) {
         _avatars.insert(0, _selectedEmoji);
@@ -33,6 +37,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   @override
   void dispose() {
     _usernameController.dispose();
+    _pronounsController.dispose();
+    _bioController.dispose();
     super.dispose();
   }
   Future<void> _saveProfile() async {
@@ -43,6 +49,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     await gamification.updateProfile(
       username: username,
       avatarEmoji: _selectedEmoji,
+      pronouns: _pronounsController.text.trim(),
+      bio: _bioController.text.trim(),
     );
     ref.invalidate(userProfileProvider);
     if (mounted) {
@@ -110,6 +118,42 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               controller: _usernameController,
               decoration: InputDecoration(
                 hintText: 'Enter your username',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                filled: true,
+                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Pronouns',
+              style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _pronounsController,
+              decoration: InputDecoration(
+                hintText: 'e.g., they/them, she/her',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                filled: true,
+                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Bio',
+              style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _bioController,
+              maxLines: 3,
+              maxLength: 150,
+              decoration: InputDecoration(
+                hintText: 'Tell others a bit about yourself...',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),

@@ -5,12 +5,18 @@ class UserProfile extends HiveObject {
   int totalPoints;
   int currentLevel;
   List<String> unlockedBadges;
+  String pronouns;
+  String bio;
+  List<String> friendIds;
   UserProfile({
     required this.username,
     required this.avatarEmoji,
     this.totalPoints = 0,
     this.currentLevel = 1,
     this.unlockedBadges = const [],
+    this.pronouns = '',
+    this.bio = '',
+    this.friendIds = const [],
   });
 }
 class UserProfileAdapter extends TypeAdapter<UserProfile> {
@@ -30,12 +36,15 @@ class UserProfileAdapter extends TypeAdapter<UserProfile> {
       avatarEmoji: fields[1] as String,
       totalPoints: fields[2] as int,
       currentLevel: fields[3] as int,
-      unlockedBadges: (fields[4] as List).cast<String>(),
+      unlockedBadges: (fields[4] as List?)?.cast<String>() ?? [],
+      pronouns: fields[5] as String? ?? '',
+      bio: fields[6] as String? ?? '',
+      friendIds: (fields[7] as List?)?.cast<String>() ?? [],
     );
   }
   @override
   void write(BinaryWriter writer, UserProfile obj) {
-    writer.writeByte(5);
+    writer.writeByte(8);
     writer.writeByte(0);
     writer.write(obj.username);
     writer.writeByte(1);
@@ -46,5 +55,11 @@ class UserProfileAdapter extends TypeAdapter<UserProfile> {
     writer.write(obj.currentLevel);
     writer.writeByte(4);
     writer.write(obj.unlockedBadges);
+    writer.writeByte(5);
+    writer.write(obj.pronouns);
+    writer.writeByte(6);
+    writer.write(obj.bio);
+    writer.writeByte(7);
+    writer.write(obj.friendIds);
   }
 }

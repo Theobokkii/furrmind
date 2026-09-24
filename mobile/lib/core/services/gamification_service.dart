@@ -30,11 +30,20 @@ class GamificationService {
     }
     return box.get('current')!;
   }
-  Future<void> updateProfile({String? username, String? avatarEmoji}) async {
+  Future<void> updateProfile({
+    String? username, 
+    String? avatarEmoji,
+    String? pronouns,
+    String? bio,
+    List<String>? friendIds,
+  }) async {
     final box = await _getProfileBox();
     final profile = await getProfile();
     if (username != null) profile.username = username;
     if (avatarEmoji != null) profile.avatarEmoji = avatarEmoji;
+    if (pronouns != null) profile.pronouns = pronouns;
+    if (bio != null) profile.bio = bio;
+    if (friendIds != null) profile.friendIds = friendIds;
     await box.put('current', profile);
   }
   int _calculateLevel(int points) {

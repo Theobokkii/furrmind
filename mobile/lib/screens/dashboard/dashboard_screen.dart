@@ -9,6 +9,8 @@ import '../../core/services/journal_storage.dart';
 import '../../core/services/mock_data_service.dart';
 import '../../core/services/gamification_service.dart';
 import '../../core/theme/app_theme.dart';
+import 'social_tab.dart';
+import 'leaderboard_tab.dart';
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
   @override
@@ -20,6 +22,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     final pages = [
       const _HomeTab(),
+      const SocialTab(),
+      const LeaderboardTab(),
       const _MoodTab(),
       const _ProfileTab(),
     ];
@@ -38,6 +42,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             icon: Icon(Icons.book_outlined),
             selectedIcon: Icon(Icons.book),
             label: 'Journal',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.people_outline_rounded),
+            selectedIcon: Icon(Icons.people_rounded),
+            label: 'Social',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.emoji_events_outlined),
+            selectedIcon: Icon(Icons.emoji_events_rounded),
+            label: 'Ranks',
           ),
           NavigationDestination(
             icon: Icon(Icons.insights_outlined),
@@ -686,7 +700,6 @@ class _MoodTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final weeklyMoodsAsync = ref.watch(weeklyMoodsProvider);
-    
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.all(24),
@@ -947,12 +960,39 @@ class _ProfileTab extends ConsumerWidget {
                   ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.8, 0.8), end: const Offset(1, 1)),
                   const SizedBox(height: 16),
                   Center(
-                    child: Text(
-                      profile.username,
-                      style: theme.textTheme.headlineMedium,
+                    child: RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: profile.username,
+                            style: theme.textTheme.headlineMedium,
+                          ),
+                          if (profile.pronouns.isNotEmpty)
+                            TextSpan(
+                              text: ' (${profile.pronouns})',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.normal,
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  if (profile.bio.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Text(
+                        profile.bio,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.textTheme.bodySmall?.color,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
                   Center(
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -976,8 +1016,37 @@ class _ProfileTab extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  if (profile.unlockedBadges.isNotEmpty) ...[
                     const SizedBox(height: 24),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Friends',
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Card(
+                      child: ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primaryContainer,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.people_alt_rounded),
+                        ),
+                        title: const Text('My Friends'),
+                        trailing: Text(
+                          '${profile.friendIds.length}',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (profile.unlockedBadges.isNotEmpty) ...[
+                      const SizedBox(height: 24),
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
@@ -1042,7 +1111,6 @@ class _ProfileTab extends ConsumerWidget {
     );
   }
 }
-
 class _ProfileMenuItem extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -1067,4 +1135,3 @@ class _ProfileMenuItem extends StatelessWidget {
     );
   }
 }
-
