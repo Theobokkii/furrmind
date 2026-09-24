@@ -5,15 +5,12 @@ import 'package:intl/intl.dart';
 import '../../core/models/journal_entry.dart';
 import '../../core/services/journal_storage.dart';
 import '../../core/theme/app_theme.dart';
-
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final entriesAsync = ref.watch(journalEntriesProvider);
     final theme = Theme.of(context);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('📖 Journal History'),
@@ -51,7 +48,6 @@ class HistoryScreen extends ConsumerWidget {
               ),
             );
           }
-
           return ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             itemCount: entries.length,
@@ -67,13 +63,10 @@ class HistoryScreen extends ConsumerWidget {
     );
   }
 }
-
 class _HistoryCard extends ConsumerWidget {
   final JournalEntry entry;
   final int index;
-
   const _HistoryCard({required this.entry, required this.index});
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -81,7 +74,6 @@ class _HistoryCard extends ConsumerWidget {
     final dateStr = DateFormat(
       'MMM dd, yyyy · hh:mm a',
     ).format(entry.createdAt);
-
     return Dismissible(
           key: Key(entry.id),
           direction: DismissDirection.endToStart,

@@ -3,33 +3,27 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../core/models/distortion_result.dart';
 import '../core/theme/app_theme.dart';
 import 'confidence_bar.dart';
-
 class DistortionCard extends StatefulWidget {
   final DistortionResult distortion;
   final int index;
   final Color? accentColor;
-
   const DistortionCard({
     super.key,
     required this.distortion,
     required this.index,
     this.accentColor,
   });
-
   @override
   State<DistortionCard> createState() => _DistortionCardState();
 }
-
 class _DistortionCardState extends State<DistortionCard> {
   bool _expanded = false;
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final color =
         widget.accentColor ??
         AppColors.chipColors[widget.index % AppColors.chipColors.length];
-
     return Card(
           child: InkWell(
             borderRadius: BorderRadius.circular(16),

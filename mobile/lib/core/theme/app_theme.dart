@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
 class AppColors {
   static const lightPrimary = Color(0xFF6C63FF);
   static const lightSecondary = Color(0xFFFF6F91);
@@ -10,7 +9,6 @@ class AppColors {
   static const lightTextPrimary = Color(0xFF2D2B55);
   static const lightTextSecondary = Color(0xFF6E6B8A);
   static const lightDivider = Color(0xFFE8E6F0);
-
   static const darkPrimary = Color(0xFF8B83FF);
   static const darkSecondary = Color(0xFFFF8FAB);
   static const darkBackground = Color(0xFF1A1A2E);
@@ -19,12 +17,10 @@ class AppColors {
   static const darkTextPrimary = Color(0xFFE8E8F0);
   static const darkTextSecondary = Color(0xFFA0A0C0);
   static const darkDivider = Color(0xFF2A2A4E);
-
   static const success = Color(0xFF4CAF50);
   static const warning = Color(0xFFFF9800);
   static const crisisRed = Color(0xFFE53935);
   static const crisisRedDark = Color(0xFFEF5350);
-
   static const chipColors = [
     Color(0xFF6C63FF),
     Color(0xFFFF6F91),
@@ -38,7 +34,6 @@ class AppColors {
     Color(0xFF66BB6A),
   ];
 }
-
 class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
@@ -150,7 +145,6 @@ class AppTheme {
       ),
     );
   }
-
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
@@ -261,7 +255,6 @@ class AppTheme {
       ),
     );
   }
-
   static TextTheme _buildTextTheme(Color primary, Color secondary) {
     return TextTheme(
       displayLarge: GoogleFonts.outfit(

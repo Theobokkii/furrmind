@@ -2,13 +2,11 @@ class DistortionResult {
   final String label;
   final double confidence;
   final bool triggered;
-
   const DistortionResult({
     required this.label,
     required this.confidence,
     required this.triggered,
   });
-
   factory DistortionResult.fromJson(Map<String, dynamic> json) {
     return DistortionResult(
       label: json['label'] as String,
@@ -16,13 +14,11 @@ class DistortionResult {
       triggered: json['triggered'] as bool,
     );
   }
-
   Map<String, dynamic> toJson() => {
     'label': label,
     'confidence': confidence,
     'triggered': triggered,
   };
-
   String get displayName {
     final mapping = {
       'all_or_nothing': 'All-or-Nothing Thinking',
@@ -50,7 +46,6 @@ class DistortionResult {
             })
             .join(' ');
   }
-
   String get description {
     final descriptions = {
       'all_or_nothing':
@@ -81,18 +76,15 @@ class DistortionResult {
         'A cognitive distortion pattern detected in your thoughts.';
   }
 }
-
 class ReframeResult {
   final String reframe;
   final String explanation;
   final List<String> sources;
-
   const ReframeResult({
     required this.reframe,
     required this.explanation,
     required this.sources,
   });
-
   factory ReframeResult.fromJson(Map<String, dynamic> json) {
     return ReframeResult(
       reframe: json['reframe'] as String,
@@ -102,7 +94,6 @@ class ReframeResult {
           .toList(),
     );
   }
-
   Map<String, dynamic> toJson() => {
     'reframe': reframe,
     'explanation': explanation,

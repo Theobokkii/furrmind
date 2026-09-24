@@ -3,18 +3,18 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../models/journal_entry.dart';
 import '../models/distortion_result.dart';
-
+import 'gamification_service.dart';
 class JournalStorageService {
   static const _boxName = 'journal_entries';
   static const _uuid = Uuid();
-
+  final Ref ref;
+  JournalStorageService(this.ref);
   Future<Box<JournalEntry>> _getBox() async {
     if (!Hive.isBoxOpen(_boxName)) {
       return await Hive.openBox<JournalEntry>(_boxName);
     }
     return Hive.box<JournalEntry>(_boxName);
   }
-
   Future<JournalEntry> saveEntry({
     required String text,
     required List<DistortionResult> distortions,
@@ -38,36 +38,34 @@ class JournalStorageService {
       createdAt: DateTime.now(),
     );
     await box.put(entry.id, entry);
+    final gamification = ref.read(gamificationProvider);
+    int pointsEarned = 10;
+    if (reframe != null) pointsEarned += 15;
+    await gamification.addPoints(pointsEarned);
     return entry;
   }
-
   Future<List<JournalEntry>> getAllEntries() async {
     final box = await _getBox();
     final entries = box.values.toList();
     entries.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return entries;
   }
-
   Future<void> deleteEntry(String id) async {
     final box = await _getBox();
     await box.delete(id);
   }
-
   Future<void> clearAll() async {
     final box = await _getBox();
     await box.clear();
   }
-
   Future<int> getCount() async {
     final box = await _getBox();
     return box.length;
   }
 }
-
 final journalStorageProvider = Provider<JournalStorageService>((ref) {
-  return JournalStorageService();
+  return JournalStorageService(ref);
 });
-
 final journalEntriesProvider = FutureProvider<List<JournalEntry>>((ref) async {
   final storage = ref.read(journalStorageProvider);
   return storage.getAllEntries();

@@ -1,22 +1,17 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
-
 class ConfidenceBar extends StatelessWidget {
   final double confidence;
   final double height;
-
   const ConfidenceBar({super.key, required this.confidence, this.height = 8});
-
   Color _getColor() {
     if (confidence < 0.4) return AppColors.success;
     if (confidence < 0.7) return AppColors.warning;
     return AppColors.crisisRed;
   }
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [

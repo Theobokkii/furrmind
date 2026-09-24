@@ -1,5 +1,4 @@
 import 'package:hive/hive.dart';
-
 class JournalEntry extends HiveObject {
   String id;
   String text;
@@ -9,7 +8,6 @@ class JournalEntry extends HiveObject {
   String? explanation;
   List<String>? techniques;
   DateTime createdAt;
-
   JournalEntry({
     required this.id,
     required this.text,
@@ -21,11 +19,9 @@ class JournalEntry extends HiveObject {
     required this.createdAt,
   });
 }
-
 class JournalEntryAdapter extends TypeAdapter<JournalEntry> {
   @override
   final int typeId = 0;
-
   @override
   JournalEntry read(BinaryReader reader) {
     final numOfFields = reader.readByte();
@@ -46,7 +42,6 @@ class JournalEntryAdapter extends TypeAdapter<JournalEntry> {
       createdAt: fields[7] as DateTime,
     );
   }
-
   @override
   void write(BinaryWriter writer, JournalEntry obj) {
     writer.writeByte(8);

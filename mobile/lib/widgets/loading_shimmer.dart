@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
-
 class LoadingShimmer extends StatelessWidget {
   final int itemCount;
-
   const LoadingShimmer({super.key, this.itemCount = 3});
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final baseColor = isDark ? Colors.white10 : Colors.grey.shade200;
     final highlightColor = isDark ? Colors.white24 : Colors.grey.shade50;
-
     return Shimmer.fromColors(
       baseColor: baseColor,
       highlightColor: highlightColor,

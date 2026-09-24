@@ -1,39 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/services/api_service.dart';
-import '../../main.dart';
-
+import '../../core/theme/theme_provider.dart';
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
-
   @override
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
-
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   late final TextEditingController _urlController;
   bool? _healthStatus;
   bool _isCheckingHealth = false;
-
   @override
   void initState() {
     super.initState();
     final apiService = ref.read(apiServiceProvider);
     _urlController = TextEditingController(text: apiService.baseUrl);
   }
-
   @override
   void dispose() {
     _urlController.dispose();
     super.dispose();
   }
-
   Future<void> _checkHealth() async {
     setState(() {
       _isCheckingHealth = true;
       _healthStatus = null;
     });
-
     final apiService = ref.read(apiServiceProvider);
     final ok = await apiService.checkHealth();
     if (mounted) {
@@ -43,12 +36,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       });
     }
   }
-
   @override
   Widget build(BuildContext context) {
-    final themeMode = ref.watch(themeModeProvider);
+    final themeMode = ref.watch(themeProvider);
     final theme = Theme.of(context);
-
     return Scaffold(
       appBar: AppBar(title: const Text('⚙️ Settings')),
       body: ListView(
@@ -101,8 +92,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ],
                       selected: {themeMode},
                       onSelectionChanged: (newSelection) {
-                        ref.read(themeModeProvider.notifier).state =
-                            newSelection.first;
+                        ref.read(themeProvider.notifier).setThemeMode(
+                            newSelection.first);
                       },
                     ),
                   ),
@@ -110,9 +101,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
           ),
-
           const SizedBox(height: 28),
-
           Text(
             'BACKEND CONNECTION',
             style: theme.textTheme.labelMedium?.copyWith(
@@ -139,14 +128,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Android Emulator: http://10.0.2.2:8000\nLocal / Web / Desktop: http://127.0.0.1:8000',
+                    'Android Emulator: http://10.0.2.2:8000',
                     style: theme.textTheme.bodySmall,
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: _urlController,
                     decoration: const InputDecoration(
-                      hintText: 'http://10.0.2.2:8000',
+                      hintText: 'http://127.0.0.1:8000',
                       prefixIcon: Icon(Icons.link),
                     ),
                     onSubmitted: (url) {
@@ -213,9 +202,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
           ),
-
           const SizedBox(height: 28),
-
           Text(
             'ABOUT FURRMIND',
             style: theme.textTheme.labelMedium?.copyWith(
