@@ -22,6 +22,7 @@ class FirestoreService {
     if (currentUserId == null) return;
     
     await _firestore.collection('users').doc(currentUserId).set({
+      'name': profile.name,
       'username': profile.username,
       'avatarEmoji': profile.avatarEmoji,
       'totalPoints': profile.totalPoints,
@@ -35,11 +36,9 @@ class FirestoreService {
     });
   }
 
-  Future<UserProfile?> getUserProfile(String uid) async {
-    final doc = await _firestore.collection('users').doc(uid).get();
-    if (!doc.exists) return null;
-    final data = doc.data()!;
+  UserProfile _mapToUserProfile(Map<String, dynamic> data) {
     return UserProfile(
+      name: data['name'] ?? data['username'] ?? '',
       username: data['username'] ?? '',
       avatarEmoji: data['avatarEmoji'] ?? '🐱',
       totalPoints: data['totalPoints'] ?? 0,
@@ -53,23 +52,17 @@ class FirestoreService {
     );
   }
 
+  Future<UserProfile?> getUserProfile(String uid) async {
+    final doc = await _firestore.collection('users').doc(uid).get();
+    if (!doc.exists) return null;
+    return _mapToUserProfile(doc.data()!);
+  }
+
   Stream<UserProfile?> getUserProfileStream() {
     if (currentUserId == null) return Stream.value(null);
     return _firestore.collection('users').doc(currentUserId).snapshots().map((doc) {
       if (!doc.exists) return null;
-      final data = doc.data()!;
-      return UserProfile(
-        username: data['username'] ?? '',
-        avatarEmoji: data['avatarEmoji'] ?? '🐱',
-        totalPoints: data['totalPoints'] ?? 0,
-        currentLevel: data['currentLevel'] ?? 1,
-        unlockedBadges: List<String>.from(data['unlockedBadges'] ?? []),
-        pronouns: data['pronouns'] ?? '',
-        bio: data['bio'] ?? '',
-        friendIds: List<String>.from(data['friendIds'] ?? []),
-        bannerUrl: data['bannerUrl'] ?? 'default',
-        activeTheme: data['activeTheme'] ?? 'default',
-      );
+      return _mapToUserProfile(doc.data()!);
     });
   }
 
@@ -163,21 +156,65 @@ class FirestoreService {
             }).toList());
   }
 
-  // --- SEARCH FRIENDS ---
-  Future<List<Map<String, dynamic>>> searchUsersByUsername(String query) async {
+  // --- SEARCH FRIENDS & SOCIAL ---
+  Future<List<UserProfile>> searchUsersByUsername(String query) async {
     if (query.isEmpty) return [];
-    
-    // Firestore simple substring search trick using >= and <=
     final snapshot = await _firestore
         .collection('users')
         .where('username', isGreaterThanOrEqualTo: query)
         .where('username', isLessThan: '${query}z')
         .get();
         
-    return snapshot.docs.map((doc) {
-      final data = doc.data();
-      data['uid'] = doc.id;
-      return data;
-    }).toList();
+    return snapshot.docs.map((doc) => _mapToUserProfile(doc.data())).toList();
+  }
+
+  Future<List<UserProfile>> getDiscoverUsers(int limitCount) async {
+    final snapshot = await _firestore.collection('users').limit(limitCount).get();
+    return snapshot.docs
+        .map((doc) => _mapToUserProfile(doc.data()))
+        .where((u) => u.username.isNotEmpty)
+        .toList();
+  }
+
+  Future<List<UserProfile>> getFriendsProfiles(List<String> friendUsernames) async {
+    if (friendUsernames.isEmpty) return [];
+    // For portfolio scale, fetching all and filtering in-memory is acceptable
+    final snapshot = await _firestore.collection('users').get();
+    return snapshot.docs
+        .map((doc) => _mapToUserProfile(doc.data()))
+        .where((u) => friendUsernames.contains(u.username))
+        .toList();
+  }
+
+  // --- CATO CHAT ---
+  Future<void> saveChatMessage(String text, bool isUser) async {
+    if (currentUserId == null) return;
+    await _firestore
+        .collection('users')
+        .doc(currentUserId)
+        .collection('cato_chats')
+        .add({
+      'text': text,
+      'isUser': isUser,
+      'createdAt': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Stream<List<Map<String, dynamic>>> getChatMessagesStream() {
+    if (currentUserId == null) return Stream.value([]);
+    return _firestore
+        .collection('users')
+        .doc(currentUserId)
+        .collection('cato_chats')
+        .orderBy('createdAt', descending: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) {
+              final data = doc.data();
+              return {
+                'text': data['text'] ?? '',
+                'isUser': data['isUser'] ?? false,
+                'isCato': !(data['isUser'] ?? false),
+              };
+            }).toList());
   }
 }

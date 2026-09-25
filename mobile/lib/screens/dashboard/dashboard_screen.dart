@@ -112,8 +112,8 @@ class _HomeTab extends ConsumerWidget {
     if (hasMood) {
       todayScore = currentMood.moodScore;
     } else {
-      // Mock score for demo
-      todayScore = 5;
+      // Default to neutral score if no mood logged yet
+      todayScore = 3;
     }
     
     final hasJournaled = entriesAsync.maybeWhen(
@@ -159,7 +159,7 @@ class _HomeTab extends ConsumerWidget {
                         children: [
                           profileAsync.when(
                             data: (profile) => Text(
-                              '${_greeting()}, ${profile.username}',
+                              '${_greeting()}, ${profile.name}',
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 color: theme.textTheme.bodySmall?.color,
                               ),
@@ -186,14 +186,9 @@ class _HomeTab extends ConsumerWidget {
             SliverToBoxAdapter(
               child: todayMoodAsync.when(
                 data: (mood) {
-                  if (mood == null) {
-                    // Show CheckIn prompt, but also show a mock MoodCard for demonstration!
-                    return Column(
-                      children: [
-                        _DailyMoodCheckIn(),
-                        _TodayMoodCard(mood: MoodEntry(id: 'mock', moodScore: 5, createdAt: DateTime.now())),
-                      ],
-                    );
+                  if (mood == null || mood.id == 'mock') {
+                    // Just show CheckIn prompt if no mood yet
+                    return _DailyMoodCheckIn();
                   }
                   return _TodayMoodCard(mood: mood);
                 },
@@ -1598,7 +1593,33 @@ class _MoodTabState extends ConsumerState<_MoodTab> {
     }
   }
 
-  List<MoodEntry> _getMockData(List<MoodEntry> realMoods) {
+  (DateTime, DateTime) _getTimeRangeDates() {
+    final now = DateTime.now();
+    if (_timeRange == 'This Day') {
+      final targetDay = now.add(Duration(days: _offset));
+      return (
+        DateTime(targetDay.year, targetDay.month, targetDay.day),
+        DateTime(targetDay.year, targetDay.month, targetDay.day, 23, 59, 59)
+      );
+    } else if (_timeRange == 'This Week') {
+      final monday = now.subtract(Duration(days: now.weekday - 1));
+      final targetMonday = monday.add(Duration(days: _offset * 7));
+      final targetSunday = targetMonday.add(const Duration(days: 6));
+      return (
+        DateTime(targetMonday.year, targetMonday.month, targetMonday.day),
+        DateTime(targetSunday.year, targetSunday.month, targetSunday.day, 23, 59, 59)
+      );
+    } else {
+      final targetDate = DateTime(now.year, now.month + _offset, 1);
+      final daysInMonth = DateTime(targetDate.year, targetDate.month + 1, 0).day;
+      return (
+        targetDate,
+        DateTime(targetDate.year, targetDate.month, daysInMonth, 23, 59, 59)
+      );
+    }
+  }
+
+  List<MoodEntry> _getDisplayData(List<MoodEntry> realMoods) {
     final now = DateTime.now();
     final List<MoodEntry> generated = [];
 
@@ -1608,14 +1629,6 @@ class _MoodTabState extends ConsumerState<_MoodTab> {
         final hasReal = realMoods.where((m) => m.createdAt.year == targetDay.year && m.createdAt.month == targetDay.month && m.createdAt.day == targetDay.day && m.createdAt.hour == i);
         if (hasReal.isNotEmpty) {
           generated.add(hasReal.first);
-        } else if (_offset < 0 || (targetDay.day != now.day || i <= now.hour)) {
-          // Add some fake data for past hours
-          if (i > 6 && i % 4 != 0) { // random gaps
-             final val = ((i * 7) % 5) + 1;
-             generated.add(MoodEntry(id: 'm_$i', moodScore: val, createdAt: DateTime(targetDay.year, targetDay.month, targetDay.day, i)));
-          } else {
-             generated.add(MoodEntry(id: 'gap', moodScore: 0, createdAt: DateTime(targetDay.year, targetDay.month, targetDay.day, i)));
-          }
         } else {
           generated.add(MoodEntry(id: 'gap', moodScore: 0, createdAt: DateTime(targetDay.year, targetDay.month, targetDay.day, i)));
         }
@@ -1628,9 +1641,6 @@ class _MoodTabState extends ConsumerState<_MoodTab> {
         final dayMoods = realMoods.where((m) => m.createdAt.year == day.year && m.createdAt.month == day.month && m.createdAt.day == day.day);
         if (dayMoods.isNotEmpty) {
           generated.add(dayMoods.last);
-        } else if (_offset < 0 || day.isBefore(now) || day.isAtSameMomentAs(now)) {
-          final val = ((i * 3) % 4) + 2;
-          generated.add(MoodEntry(id: 'm_$i', moodScore: val, createdAt: day));
         } else {
           generated.add(MoodEntry(id: 'gap', moodScore: 0, createdAt: day));
         }
@@ -1643,9 +1653,6 @@ class _MoodTabState extends ConsumerState<_MoodTab> {
         final dayMoods = realMoods.where((m) => m.createdAt.year == day.year && m.createdAt.month == day.month && m.createdAt.day == day.day);
         if (dayMoods.isNotEmpty) {
           generated.add(dayMoods.last);
-        } else if (_offset < 0 || day.isBefore(now) || day.isAtSameMomentAs(now)) {
-          final val = ((i * 2) % 4) + 1;
-          generated.add(MoodEntry(id: 'm_$i', moodScore: val, createdAt: day));
         } else {
           generated.add(MoodEntry(id: 'gap', moodScore: 0, createdAt: day));
         }
@@ -1657,7 +1664,8 @@ class _MoodTabState extends ConsumerState<_MoodTab> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final weeklyMoodsAsync = ref.watch(weeklyMoodsProvider);
+    final allMoodsAsync = ref.watch(allMoodsProvider);
+    final journalEntriesAsync = ref.watch(journalEntriesProvider);
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.all(24),
@@ -1742,9 +1750,9 @@ class _MoodTabState extends ConsumerState<_MoodTab> {
                     onHorizontalDragEnd: _onSwipe,
                     child: SizedBox(
                       height: 200,
-                      child: weeklyMoodsAsync.when(
+                      child: allMoodsAsync.when(
                         data: (realMoods) {
-                          final displayMoods = _getMockData(realMoods);
+                          final displayMoods = _getDisplayData(realMoods);
                           final validSpots = displayMoods.where((m) => m.moodScore > 0).toList();
                           
                           if (_chartType == 'line') {
@@ -1886,85 +1894,123 @@ class _MoodTabState extends ConsumerState<_MoodTab> {
             ),
           ).animate().fadeIn(delay: 200.ms, duration: 500.ms).slideY(begin: 0.1, end: 0),
           const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
+          Builder(
+            builder: (context) {
+              final realMoods = allMoodsAsync.value ?? [];
+              final displayMoods = _getDisplayData(realMoods);
+              final validSpots = displayMoods.where((m) => m.moodScore > 0).toList();
+
+              double avgMood = 0;
+              if (validSpots.isNotEmpty) {
+                avgMood = validSpots.map((m) => m.moodScore).reduce((a, b) => a + b) / validSpots.length;
+              }
+              String moodLabel = 'No Data';
+              if (avgMood >= 4.5) moodLabel = 'Excellent';
+              else if (avgMood >= 3.5) moodLabel = 'Good';
+              else if (avgMood >= 2.5) moodLabel = 'Neutral';
+              else if (avgMood >= 1.5) moodLabel = 'Poor';
+              else if (avgMood > 0) moodLabel = 'Terrible';
+
+              String moodEmoji = '😶';
+              if (avgMood >= 4.5) moodEmoji = '😁';
+              else if (avgMood >= 3.5) moodEmoji = '🙂';
+              else if (avgMood >= 2.5) moodEmoji = '😐';
+              else if (avgMood >= 1.5) moodEmoji = '🙁';
+              else if (avgMood > 0) moodEmoji = '😢';
+
+              final range = _getTimeRangeDates();
+              final journalEntries = journalEntriesAsync.value ?? [];
+              final filteredEntries = journalEntries.where((e) => 
+                e.createdAt.isAfter(range.$1.subtract(const Duration(milliseconds: 1))) && 
+                e.createdAt.isBefore(range.$2.add(const Duration(milliseconds: 1)))
+              ).toList();
+
+              final patternCounts = <String, int>{};
+              for (final entry in filteredEntries) {
+                for (final dist in entry.distortionLabels) {
+                  patternCounts[dist] = (patternCounts[dist] ?? 0) + 1;
+                }
+              }
+              final sortedPatterns = patternCounts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+              final topPatterns = sortedPatterns.take(4).toList();
+              int maxCount = topPatterns.isNotEmpty ? topPatterns.first.value : 1;
+              if (maxCount == 0) maxCount = 1;
+
+              return Column(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: AppColors.lightPrimary.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: AppColors.lightPrimary.withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(moodEmoji, style: const TextStyle(fontSize: 28)),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Average Mood',
+                                  style: theme.textTheme.titleSmall
+                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  avgMood > 0 ? '${avgMood.toStringAsFixed(1)} / 5.0 — $moodLabel' : 'No entries yet',
+                                  style: theme.textTheme.bodyMedium,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    child: const Text('😊', style: TextStyle(fontSize: 28)),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Average Mood',
-                          style: theme.textTheme.titleSmall
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '3.3 / 5.0 — Neutral-Good',
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ).animate().fadeIn(delay: 350.ms, duration: 400.ms),
-          const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Common Patterns',
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.bold),
-                  ),
+                  ).animate().fadeIn(delay: 350.ms, duration: 400.ms),
                   const SizedBox(height: 16),
-                  _PatternRow(
-                    label: 'All-or-Nothing',
-                    count: 3,
-                    color: AppColors.chipColors[0],
-                    progress: 0.8,
-                  ),
-                  const SizedBox(height: 12),
-                  _PatternRow(
-                    label: 'Mind Reading',
-                    count: 2,
-                    color: AppColors.chipColors[1],
-                    progress: 0.5,
-                  ),
-                  const SizedBox(height: 12),
-                  _PatternRow(
-                    label: 'Should Statements',
-                    count: 2,
-                    color: AppColors.chipColors[2],
-                    progress: 0.5,
-                  ),
-                  const SizedBox(height: 12),
-                  _PatternRow(
-                    label: 'Catastrophizing',
-                    count: 1,
-                    color: AppColors.chipColors[3],
-                    progress: 0.25,
-                  ),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Common Patterns',
+                            style: theme.textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 16),
+                          if (topPatterns.isEmpty)
+                            Text('No cognitive distortions found in this period.', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant))
+                          else
+                            ...topPatterns.asMap().entries.map((entry) {
+                              final idx = entry.key;
+                              final pattern = entry.value;
+                              final color = AppColors.chipColors[idx % AppColors.chipColors.length];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: _PatternRow(
+                                  label: pattern.key,
+                                  count: pattern.value,
+                                  color: color,
+                                  progress: pattern.value / maxCount,
+                                ),
+                              );
+                            }).toList(),
+                        ],
+                      ),
+                    ),
+                  ).animate().fadeIn(delay: 500.ms, duration: 400.ms),
                 ],
-              ),
-            ),
-          ).animate().fadeIn(delay: 500.ms, duration: 400.ms),
+              );
+            },
+          ),
           const SizedBox(height: 80),
         ],
       ),
@@ -2123,8 +2169,11 @@ class _ProfileTab extends ConsumerWidget {
                       text: TextSpan(
                         children: [
                           TextSpan(
-                            text: profile.username,
-                            style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+                            text: profile.name,
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.textTheme.headlineMedium?.color,
+                            ),
                           ),
                           if (profile.pronouns.isNotEmpty)
                             TextSpan(
@@ -2137,8 +2186,16 @@ class _ProfileTab extends ConsumerWidget {
                         ],
                       ),
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '@${profile.username}',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                     if (profile.bio.isNotEmpty) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 12),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 32),
                         child: Text(

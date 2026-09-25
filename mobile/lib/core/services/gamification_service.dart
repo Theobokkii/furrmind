@@ -9,7 +9,7 @@ final gamificationProvider = Provider((ref) => GamificationService(ref));
 final userProfileProvider = StreamProvider<UserProfile>((ref) {
   final firestoreService = ref.watch(firestoreServiceProvider);
   return firestoreService.getUserProfileStream().map((profile) => 
-    profile ?? UserProfile(username: 'Explorer', avatarEmoji: '👤')
+    profile ?? UserProfile(name: 'Explorer', username: 'explorer', avatarEmoji: '👤')
   );
 });
 
@@ -29,13 +29,11 @@ final todayMoodProvider = StreamProvider<MoodEntry?>((ref) {
   });
 });
 
-final weeklyMoodsProvider = StreamProvider<List<MoodEntry>>((ref) {
+final allMoodsProvider = StreamProvider<List<MoodEntry>>((ref) {
   final firestoreService = ref.watch(firestoreServiceProvider);
   return firestoreService.getMoodsStream().map((moods) {
-    final weekAgo = DateTime.now().subtract(const Duration(days: 7));
-    final filtered = moods.where((e) => e.createdAt.isAfter(weekAgo)).toList();
-    filtered.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-    return filtered;
+    moods.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    return moods;
   });
 });
 
@@ -47,12 +45,13 @@ class GamificationService {
   Future<UserProfile> getProfile() async {
     final firestoreService = _ref.read(firestoreServiceProvider);
     final uid = firestoreService.currentUserId;
-    if (uid == null) return UserProfile(username: 'Explorer', avatarEmoji: '👤');
+    if (uid == null) return UserProfile(name: 'Explorer', username: 'explorer', avatarEmoji: '👤');
     final profile = await firestoreService.getUserProfile(uid);
-    return profile ?? UserProfile(username: 'Explorer', avatarEmoji: '👤');
+    return profile ?? UserProfile(name: 'Explorer', username: 'explorer', avatarEmoji: '👤');
   }
 
   Future<void> updateProfile({
+    String? name,
     String? username, 
     String? avatarEmoji,
     String? pronouns,
@@ -64,6 +63,7 @@ class GamificationService {
     final firestoreService = _ref.read(firestoreServiceProvider);
     final profile = await getProfile();
     
+    if (name != null) profile.name = name;
     if (username != null) profile.username = username;
     if (avatarEmoji != null) profile.avatarEmoji = avatarEmoji;
     if (pronouns != null) profile.pronouns = pronouns;

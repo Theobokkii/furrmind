@@ -15,6 +15,7 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late TextEditingController _nameController;
+  late TextEditingController _usernameController;
   late TextEditingController _pronounsController;
   late TextEditingController _bioController;
   
@@ -25,7 +26,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   void initState() {
     super.initState();
     final profile = ref.read(userProfileProvider).value;
-    _nameController = TextEditingController(text: profile?.username ?? '');
+    _nameController = TextEditingController(text: profile?.name ?? '');
+    _usernameController = TextEditingController(text: profile?.username ?? '');
     _pronounsController = TextEditingController(text: profile?.pronouns ?? '');
     _bioController = TextEditingController(text: profile?.bio ?? '');
     _avatarEmoji = profile?.avatarEmoji ?? '🐼';
@@ -35,6 +37,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _usernameController.dispose();
     _pronounsController.dispose();
     _bioController.dispose();
     super.dispose();
@@ -54,7 +57,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   Future<void> _saveProfile() async {
     final gamification = ref.read(gamificationProvider);
     await gamification.updateProfile(
-      username: _nameController.text.trim(),
+      name: _nameController.text.trim(),
+      username: _usernameController.text.trim(),
       pronouns: _pronounsController.text.trim(),
       bio: _bioController.text.trim(),
       avatarEmoji: _avatarEmoji,
@@ -188,6 +192,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                                             style: theme.textTheme.bodySmall,
                                           ),
                                       ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _usernameController.text.isEmpty ? '@username' : '@${_usernameController.text}',
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                   const SizedBox(height: 8),
@@ -355,6 +367,28 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         decoration: InputDecoration(
                           labelText: 'Display Name',
                           hintText: 'What should we call you?',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: theme.dividerColor),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: theme.dividerColor),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _usernameController,
+                        onChanged: (_) => setState((){}),
+                        decoration: InputDecoration(
+                          labelText: 'Username',
+                          hintText: 'Used for adding friends',
+                          prefixText: '@',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(color: theme.dividerColor),

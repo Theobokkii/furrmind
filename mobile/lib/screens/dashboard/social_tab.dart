@@ -1,9 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/services/gamification_service.dart';
 import '../../core/utils/image_helper.dart';
-import 'package:go_router/go_router.dart';
+import '../../core/services/firestore_service.dart';
+import '../../core/models/user_profile.dart';
+
+final friendsListProvider = FutureProvider.family<List<UserProfile>, List<String>>((ref, friendUsernames) {
+  final firestore = ref.watch(firestoreServiceProvider);
+  return firestore.getFriendsProfiles(friendUsernames);
+});
+
+final discoverUsersProvider = FutureProvider.family<List<UserProfile>, String>((ref, query) async {
+  final firestore = ref.watch(firestoreServiceProvider);
+  if (query.isEmpty) {
+    return firestore.getDiscoverUsers(10); // get 10 random
+  } else {
+    return firestore.searchUsersByUsername(query);
+  }
+});
+
 class SocialTab extends ConsumerWidget {
   const SocialTab({super.key});
   @override
@@ -58,64 +75,53 @@ class SocialTab extends ConsumerWidget {
     );
   }
 }
-class _FriendsList extends StatelessWidget {
+
+class _FriendsList extends ConsumerWidget {
   final List<String> friendIds;
   const _FriendsList({required this.friendIds});
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (friendIds.isEmpty) {
       return const Center(
         child: Text('You have no friends yet. Go to Discover to find some!'),
       );
     }
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: friendIds.length,
-      itemBuilder: (context, index) {
-        final friendName = friendIds[index];
-        // Get mock details for the friend if they exist in discover list
-        final mockDiscoverList = [
-          {'name': 'Jordan_99', 'avatar': 'https://picsum.photos/seed/jordan/150', 'level': 5},
-          {'name': 'AlexTheGreat', 'avatar': 'https://picsum.photos/seed/alex/150', 'level': 8},
-          {'name': 'TaylorSwift123', 'avatar': '👩🏼', 'level': 12},
-          {'name': 'Casey_Jones', 'avatar': 'https://picsum.photos/seed/casey/150', 'level': 3},
-          {'name': 'SammyBoy', 'avatar': '🐶', 'level': 2},
-          {'name': 'Riley_R', 'avatar': 'https://picsum.photos/seed/riley/150', 'level': 6},
-        ];
-        
-        final mockDetails = mockDiscoverList.firstWhere(
-          (u) => u['name'] == friendName, 
-          orElse: () => {'name': friendName, 'avatar': '🐾', 'level': 1}
+    
+    final friendsAsync = ref.watch(friendsListProvider(friendIds));
+    
+    return friendsAsync.when(
+      data: (friends) {
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: friends.length,
+          itemBuilder: (context, index) {
+            final friend = friends[index];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                onTap: () => context.push('/friend-profile', extra: friend.username),
+                leading: CircleAvatar(
+                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                  backgroundImage: getAvatarImageProvider(friend.avatarEmoji),
+                  child: buildAvatar(friend.avatarEmoji, fontSize: 20),
+                ),
+                title: Text(friend.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text('@${friend.username} • Level ${friend.currentLevel} • Online'),
+                trailing: IconButton(
+                  icon: const Icon(Icons.chat_bubble_rounded, color: Colors.blueAccent),
+                  onPressed: () => context.push('/friend-chat', extra: friend.username),
+                ),
+              ),
+            ).animate().fadeIn(delay: Duration(milliseconds: 100 * index)).slideX();
+          },
         );
-        
-        final avatar = mockDetails['avatar'] as String;
-        final level = mockDetails['level'] as int;
-
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
-            onTap: () {
-              context.push('/friend-profile', extra: friendName);
-            },
-            leading: CircleAvatar(
-              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-              backgroundImage: getAvatarImageProvider(avatar),
-              child: buildAvatar(avatar, fontSize: 20),
-            ),
-            title: Text(friendName, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text('Level $level • Online'),
-            trailing: IconButton(
-              icon: const Icon(Icons.chat_bubble_rounded, color: Colors.blueAccent),
-              onPressed: () {
-                context.push('/friend-chat', extra: friendName);
-              },
-            ),
-          ),
-        ).animate().fadeIn(delay: Duration(milliseconds: 100 * index)).slideX();
       },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('Error: $e')),
     );
   }
 }
+
 class _DiscoverList extends ConsumerStatefulWidget {
   @override
   ConsumerState<_DiscoverList> createState() => _DiscoverListState();
@@ -124,27 +130,13 @@ class _DiscoverList extends ConsumerStatefulWidget {
 class _DiscoverListState extends ConsumerState<_DiscoverList> {
   String _searchQuery = '';
 
-  final List<Map<String, dynamic>> _mockDiscover = [
-    {'name': 'Jordan_99', 'pronouns': 'he/him', 'level': 5, 'avatar': 'https://picsum.photos/seed/jordan/150'},
-    {'name': 'AlexTheGreat', 'pronouns': 'they/them', 'level': 8, 'avatar': 'https://picsum.photos/seed/alex/150'},
-    {'name': 'TaylorSwift123', 'pronouns': 'she/her', 'level': 12, 'avatar': '👩🏼'},
-    {'name': 'Casey_Jones', 'pronouns': 'he/they', 'level': 3, 'avatar': 'https://picsum.photos/seed/casey/150'},
-    {'name': 'SammyBoy', 'pronouns': 'he/him', 'level': 2, 'avatar': '🐶'},
-    {'name': 'Riley_R', 'pronouns': 'she/they', 'level': 6, 'avatar': 'https://picsum.photos/seed/riley/150'},
-  ];
-
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(userProfileProvider);
+    final discoverAsync = ref.watch(discoverUsersProvider(_searchQuery));
+    
     return profileAsync.when(
       data: (profile) {
-        final toDiscover = _mockDiscover.where((user) {
-          final isFriend = profile.friendIds.contains(user['name']);
-          final matchesSearch = _searchQuery.isEmpty || 
-              (user['name'] as String).toLowerCase().contains(_searchQuery.toLowerCase());
-          return !isFriend && matchesSearch;
-        }).toList();
-
         return Column(
           children: [
             Padding(
@@ -165,79 +157,85 @@ class _DiscoverListState extends ConsumerState<_DiscoverList> {
               ),
             ),
             Expanded(
-              child: toDiscover.isEmpty
-                  ? Center(child: Text(_searchQuery.isEmpty ? 'No more people to discover right now.' : 'No users found matching "$_searchQuery"'))
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: toDiscover.length,
-                      itemBuilder: (context, index) {
-            final user = toDiscover[index];
-            final name = user['name'] as String;
-            final pronouns = user['pronouns'] as String;
-            final level = user['level'] as int;
-            final avatar = user['avatar'] as String;
-
-            return Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: ListTile(
-                onTap: () {
-                  context.push('/friend-profile', extra: name);
-                },
-                leading: CircleAvatar(
-                  backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
-                  backgroundImage: getAvatarImageProvider(avatar),
-                  child: buildAvatar(avatar, fontSize: 20),
-                ),
-                title: Row(
-                  children: [
-                    Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        pronouns,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+              child: discoverAsync.when(
+                data: (users) {
+                  final toDiscover = users.where((u) => 
+                      u.username != profile.username && 
+                      !profile.friendIds.contains(u.username)).toList();
+                      
+                  if (toDiscover.isEmpty) {
+                    return Center(child: Text(_searchQuery.isEmpty ? 'No more people to discover right now.' : 'No users found matching "$_searchQuery"'));
+                  }
+                  
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: toDiscover.length,
+                    itemBuilder: (context, index) {
+                      final user = toDiscover[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          onTap: () => context.push('/friend-profile', extra: user.username),
+                          leading: CircleAvatar(
+                            backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+                            backgroundImage: getAvatarImageProvider(user.avatarEmoji),
+                            child: buildAvatar(user.avatarEmoji, fontSize: 20),
+                          ),
+                          title: Row(
+                            children: [
+                              Text(user.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              const SizedBox(width: 6),
+                              if (user.pronouns.isNotEmpty)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.primaryContainer,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    user.pronouns,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          subtitle: Text('@${user.username} • Level ${user.currentLevel}'),
+                          trailing: ElevatedButton.icon(
+                            icon: const Icon(Icons.person_add_rounded, size: 18),
+                            label: const Text('Add'),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                            ),
+                            onPressed: () async {
+                              final gamification = ref.read(gamificationProvider);
+                              final newFriends = List<String>.from(profile.friendIds)..add(user.username);
+                              await gamification.updateProfile(friendIds: newFriends);
+                              ref.invalidate(userProfileProvider);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Added ${user.username} to your friends!')),
+                                );
+                              }
+                            },
+                          ),
                         ),
-                      ),
-                    ),
-                  ],
-                ),
-                subtitle: Text('Level $level • Suggested Friend'),
-                trailing: ElevatedButton.icon(
-                  icon: const Icon(Icons.person_add_rounded, size: 18),
-                  label: const Text('Add'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                  ),
-                  onPressed: () async {
-                    final gamification = ref.read(gamificationProvider);
-                    final newFriends = List<String>.from(profile.friendIds)..add(name);
-                    await gamification.updateProfile(friendIds: newFriends);
-                    ref.invalidate(userProfileProvider);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Added $name to your friends!')),
-                      );
-                    }
-                  },
-                ),
-              ),
-            ).animate().fadeIn(delay: Duration(milliseconds: 100 * index)).slideY();
+                      ).animate().fadeIn(delay: Duration(milliseconds: 100 * index)).slideY();
                     },
-                  ),
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(child: Text('Error: $e')),
+              ),
             ),
           ],
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, _) => const Center(child: Text('Error')),
+      error: (e, _) => Center(child: Text('Error: $e')),
     );
   }
 }

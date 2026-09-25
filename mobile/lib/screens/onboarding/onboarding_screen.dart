@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/services/firestore_service.dart';
 import '../../core/models/user_profile.dart';
+import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -56,9 +57,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       
       // Save to Firestore
       final firestoreService = ref.read(firestoreServiceProvider);
+      
+      final random = Random();
+      final tag = random.nextInt(9000) + 1000;
+      final generatedUsername = 'flyingmonkey#$tag';
+      
       await firestoreService.saveUserProfile(
         UserProfile(
-          username: name,
+          name: name,
+          username: generatedUsername,
           avatarEmoji: '🐱',
           bio: 'Goals: ${_selectedGoals.join(", ")}',
         )

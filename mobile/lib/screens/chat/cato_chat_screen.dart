@@ -2,65 +2,68 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/services/firestore_service.dart';
 
-class CatoChatScreen extends StatefulWidget {
+final catoChatProvider = StreamProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  final firestore = ref.watch(firestoreServiceProvider);
+  return firestore.getChatMessagesStream();
+});
+
+class CatoChatScreen extends ConsumerStatefulWidget {
   const CatoChatScreen({super.key});
 
   @override
-  State<CatoChatScreen> createState() => _CatoChatScreenState();
+  ConsumerState<CatoChatScreen> createState() => _CatoChatScreenState();
 }
 
-class _CatoChatScreenState extends State<CatoChatScreen> {
+class _CatoChatScreenState extends ConsumerState<CatoChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final List<Map<String, dynamic>> _messages = [
-    {
-      "text": "Meow! I'm Cato, your soft-hearted companion. How are you feeling today?",
-      "isUser": false,
-      "isCato": true,
-    },
-  ];
   bool _isTyping = false;
 
-  void _send() {
+  void _send() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
+    final firestore = ref.read(firestoreServiceProvider);
+
     setState(() {
-      _messages.add({"text": text, "isUser": true});
       _isTyping = true;
     });
     _controller.clear();
+    
+    // Save user message to Firestore
+    await firestore.saveChatMessage(text, true);
     _scrollToBottom();
 
     // Mock Cato CBT response
-    Future.delayed(const Duration(seconds: 2), () {
+    Future.delayed(const Duration(seconds: 2), () async {
       if (!mounted) return;
-      setState(() {
-        _isTyping = false;
-        
-        String response = "";
-        final lowerText = text.toLowerCase();
-        
-        if (lowerText.contains("sad") || lowerText.contains("depress") || lowerText.contains("down")) {
-          response = "I'm sorry you're feeling this way. It's completely valid to feel sad sometimes. In CBT, we call this a wave. Instead of fighting it, what if we just observe it for a moment? What physical sensations are you feeling right now?";
-        } else if (lowerText.contains("anxious") || lowerText.contains("worry") || lowerText.contains("scared") || lowerText.contains("overwhelmed")) {
-          response = "That sounds really overwhelming. Anxiety often tells us that we have to have everything figured out right now. Can we try a simple grounding exercise? Name 3 things you can see around you.";
-        } else if (lowerText.contains("angry") || lowerText.contains("mad") || lowerText.contains("frustrat")) {
-          response = "Your frustration makes total sense. Anger is usually a protective emotion. Let's take a deep breath. Is there a boundary of yours that felt crossed today?";
-        } else if (lowerText.contains("hate") || lowerText.contains("always") || lowerText.contains("never")) {
-          response = "I hear you. It sounds like you might be experiencing some 'All-or-Nothing' thinking right now. Let's try to find a softer perspective together. What's one small piece of nuance we might be missing?";
-        } else {
-          response = "Thank you for sharing that with me. Every thought you put into words is a step toward understanding yourself better. Would you like to explore this feeling deeper, or would you prefer a distraction?";
-        }
+      
+      String response = "";
+      final lowerText = text.toLowerCase();
+      
+      if (lowerText.contains("sad") || lowerText.contains("depress") || lowerText.contains("down")) {
+        response = "I'm sorry you're feeling this way. It's completely valid to feel sad sometimes. In CBT, we call this a wave. Instead of fighting it, what if we just observe it for a moment? What physical sensations are you feeling right now?";
+      } else if (lowerText.contains("anxious") || lowerText.contains("worry") || lowerText.contains("scared") || lowerText.contains("overwhelmed")) {
+        response = "That sounds really overwhelming. Anxiety often tells us that we have to have everything figured out right now. Can we try a simple grounding exercise? Name 3 things you can see around you.";
+      } else if (lowerText.contains("angry") || lowerText.contains("mad") || lowerText.contains("frustrat")) {
+        response = "Your frustration makes total sense. Anger is usually a protective emotion. Let's take a deep breath. Is there a boundary of yours that felt crossed today?";
+      } else if (lowerText.contains("hate") || lowerText.contains("always") || lowerText.contains("never")) {
+        response = "I hear you. It sounds like you might be experiencing some 'All-or-Nothing' thinking right now. Let's try to find a softer perspective together. What's one small piece of nuance we might be missing?";
+      } else {
+        response = "Thank you for sharing that with me. Every thought you put into words is a step toward understanding yourself better. Would you like to explore this feeling deeper, or would you prefer a distraction?";
+      }
 
-        _messages.add({
-          "text": response,
-          "isUser": false,
-          "isCato": true,
+      await firestore.saveChatMessage(response, false);
+
+      if (mounted) {
+        setState(() {
+          _isTyping = false;
         });
-      });
-      _scrollToBottom();
+        _scrollToBottom();
+      }
     });
   }
 
@@ -86,6 +89,7 @@ class _CatoChatScreenState extends State<CatoChatScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final chatAsync = ref.watch(catoChatProvider);
     
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -155,13 +159,25 @@ class _CatoChatScreenState extends State<CatoChatScreen> {
             child: Column(
               children: [
                 Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                final isUser = msg["isUser"] as bool;
+                  child: chatAsync.when(
+                    data: (firestoreMessages) {
+                      final messages = firestoreMessages.isEmpty 
+                        ? [
+                            {
+                              "text": "Meow! I'm Cato, your soft-hearted companion. How are you feeling today?",
+                              "isUser": false,
+                              "isCato": true,
+                            }
+                          ]
+                        : firestoreMessages;
+
+                      return ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                        itemCount: messages.length,
+                        itemBuilder: (context, index) {
+                          final msg = messages[index];
+                          final isUser = msg["isUser"] as bool;
                 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 16),
@@ -218,8 +234,12 @@ class _CatoChatScreenState extends State<CatoChatScreen> {
                   ),
                 );
               },
-            ),
-          ),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('Error loading chats: $e')),
+        ),
+      ),
           if (_isTyping)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),

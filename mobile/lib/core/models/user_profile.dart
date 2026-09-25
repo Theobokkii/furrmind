@@ -1,5 +1,6 @@
 import 'package:hive/hive.dart';
 class UserProfile extends HiveObject {
+  String name;
   String username;
   String avatarEmoji;
   int totalPoints;
@@ -11,6 +12,7 @@ class UserProfile extends HiveObject {
   String bannerUrl;
   String activeTheme;
   UserProfile({
+    required this.name,
     required this.username,
     required this.avatarEmoji,
     this.totalPoints = 0,
@@ -36,6 +38,7 @@ class UserProfileAdapter extends TypeAdapter<UserProfile> {
       fields[key] = value;
     }
     return UserProfile(
+      name: (fields[10] as String?) ?? (fields[0] as String), // fallback to username
       username: fields[0] as String,
       avatarEmoji: fields[1] as String,
       totalPoints: fields[2] as int,
@@ -50,7 +53,9 @@ class UserProfileAdapter extends TypeAdapter<UserProfile> {
   }
   @override
   void write(BinaryWriter writer, UserProfile obj) {
+    writer.writeByte(11);
     writer.writeByte(10);
+    writer.write(obj.name);
     writer.writeByte(0);
     writer.write(obj.username);
     writer.writeByte(1);
