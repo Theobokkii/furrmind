@@ -15,10 +15,16 @@ class SocialTab extends ConsumerWidget {
         length: 2,
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            Container(
+              height: 46,
+              margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(24),
+              ),
               child: TabBar(
-                isScrollable: true,
+                dividerColor: Colors.transparent,
                 indicatorSize: TabBarIndicatorSize.tab,
                 indicator: BoxDecoration(
                   color: theme.colorScheme.primary,
@@ -26,6 +32,8 @@ class SocialTab extends ConsumerWidget {
                 ),
                 labelColor: theme.colorScheme.onPrimary,
                 unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+                labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 tabs: const [
                   Tab(text: '👥 My Friends'),
                   Tab(text: '🔍 Discover'),
@@ -86,6 +94,9 @@ class _FriendsList extends StatelessWidget {
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
           child: ListTile(
+            onTap: () {
+              context.push('/friend-profile', extra: friendName);
+            },
             leading: CircleAvatar(
               backgroundColor: Theme.of(context).colorScheme.primaryContainer,
               backgroundImage: getAvatarImageProvider(avatar),
@@ -105,7 +116,14 @@ class _FriendsList extends StatelessWidget {
     );
   }
 }
-class _DiscoverList extends ConsumerWidget {
+class _DiscoverList extends ConsumerStatefulWidget {
+  @override
+  ConsumerState<_DiscoverList> createState() => _DiscoverListState();
+}
+
+class _DiscoverListState extends ConsumerState<_DiscoverList> {
+  String _searchQuery = '';
+
   final List<Map<String, dynamic>> _mockDiscover = [
     {'name': 'Jordan_99', 'pronouns': 'he/him', 'level': 5, 'avatar': 'https://picsum.photos/seed/jordan/150'},
     {'name': 'AlexTheGreat', 'pronouns': 'they/them', 'level': 8, 'avatar': 'https://picsum.photos/seed/alex/150'},
@@ -114,19 +132,45 @@ class _DiscoverList extends ConsumerWidget {
     {'name': 'SammyBoy', 'pronouns': 'he/him', 'level': 2, 'avatar': '🐶'},
     {'name': 'Riley_R', 'pronouns': 'she/they', 'level': 6, 'avatar': 'https://picsum.photos/seed/riley/150'},
   ];
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final profileAsync = ref.watch(userProfileProvider);
     return profileAsync.when(
       data: (profile) {
-        final toDiscover = _mockDiscover.where((user) => !profile.friendIds.contains(user['name'])).toList();
-        if (toDiscover.isEmpty) {
-          return const Center(child: Text('No more people to discover right now.'));
-        }
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: toDiscover.length,
-          itemBuilder: (context, index) {
+        final toDiscover = _mockDiscover.where((user) {
+          final isFriend = profile.friendIds.contains(user['name']);
+          final matchesSearch = _searchQuery.isEmpty || 
+              (user['name'] as String).toLowerCase().contains(_searchQuery.toLowerCase());
+          return !isFriend && matchesSearch;
+        }).toList();
+
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Search by username...',
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  filled: true,
+                  fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                ),
+                onChanged: (value) => setState(() => _searchQuery = value),
+              ),
+            ),
+            Expanded(
+              child: toDiscover.isEmpty
+                  ? Center(child: Text(_searchQuery.isEmpty ? 'No more people to discover right now.' : 'No users found matching "$_searchQuery"'))
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: toDiscover.length,
+                      itemBuilder: (context, index) {
             final user = toDiscover[index];
             final name = user['name'] as String;
             final pronouns = user['pronouns'] as String;
@@ -136,6 +180,9 @@ class _DiscoverList extends ConsumerWidget {
             return Card(
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
+                onTap: () {
+                  context.push('/friend-profile', extra: name);
+                },
                 leading: CircleAvatar(
                   backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
                   backgroundImage: getAvatarImageProvider(avatar),
@@ -156,7 +203,7 @@ class _DiscoverList extends ConsumerWidget {
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
+                          color: Theme.of(context).colorScheme.onPrimaryContainer,
                         ),
                       ),
                     ),
@@ -183,7 +230,10 @@ class _DiscoverList extends ConsumerWidget {
                 ),
               ),
             ).animate().fadeIn(delay: Duration(milliseconds: 100 * index)).slideY();
-          },
+                    },
+                  ),
+            ),
+          ],
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),

@@ -10,10 +10,10 @@ import '../../screens/settings/settings_screen.dart';
 import '../../screens/profile/edit_profile_screen.dart';
 import '../../screens/chat/friend_chat_screen.dart';
 import '../../screens/chat/cato_chat_screen.dart';
+import '../../screens/profile/friend_profile_screen.dart';
 import '../../screens/mood/mood_checkin_screen.dart';
 import '../../screens/mood/mood_result_screen.dart';
 import '../../core/services/mood_service.dart';
-
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 final appRouter = GoRouter(
@@ -55,6 +55,12 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/friend-chat',
       builder: (context, state) => FriendChatScreen(
+        friendName: state.extra as String? ?? 'Friend',
+      ),
+    ),
+    GoRoute(
+      path: '/friend-profile',
+      builder: (context, state) => FriendProfileScreen(
         friendName: state.extra as String? ?? 'Friend',
       ),
     ),

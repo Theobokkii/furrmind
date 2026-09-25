@@ -80,12 +80,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'write_fab',
-        onPressed: () => context.push('/journal'),
-        icon: const Text('✍️', style: TextStyle(fontSize: 18)),
-        label: const Text('Write'),
-      ),
+      floatingActionButton: currentIndex == 0
+          ? FloatingActionButton.extended(
+              heroTag: 'write_fab',
+              onPressed: () => context.push('/journal'),
+              icon: const Text('✍️', style: TextStyle(fontSize: 18)),
+              label: const Text('Write'),
+            )
+          : null,
     );
   }
 }
@@ -106,13 +108,25 @@ class _HomeTab extends ConsumerWidget {
     
     int todayScore = 3;
     final currentMood = todayMoodAsync.valueOrNull;
-    if (currentMood != null) {
+    final hasMood = currentMood != null && currentMood.id != 'mock';
+    if (hasMood) {
       todayScore = currentMood.moodScore;
     } else {
       // Mock score for demo
       todayScore = 5;
     }
     
+    final hasJournaled = entriesAsync.maybeWhen(
+      data: (entries) {
+        final now = DateTime.now();
+        return entries.any((e) => 
+            e.createdAt.year == now.year && 
+            e.createdAt.month == now.month && 
+            e.createdAt.day == now.day);
+      },
+      orElse: () => false,
+    );
+
     return Stack(
       children: [
         // Full Page Weather Background with immersive gradients
@@ -188,6 +202,12 @@ class _HomeTab extends ConsumerWidget {
                 data: (entries) => _StreakCard(entries: entries),
                 loading: () => const SizedBox(height: 140),
                 error: (_, _) => const SizedBox(),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: _DailyTasksCard(
+                hasJournaled: hasJournaled,
+                hasMood: hasMood,
               ),
             ),
             SliverToBoxAdapter(
@@ -973,8 +993,8 @@ class _MeowFactCardState extends State<_MeowFactCard> {
   @override
   void initState() {
     super.initState();
-    // Change fact every 5 seconds for demonstration
-    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
+    // Change fact every 20 seconds so user can read comfortably
+    _timer = Timer.periodic(const Duration(seconds: 20), (timer) {
       if (mounted) {
         setState(() {
           _factIndex = (_factIndex + 1) % _facts.length;
@@ -1072,6 +1092,49 @@ class _StreakCard extends StatelessWidget {
     }
     return streak;
   }
+  Widget _buildWeeklyTracker() {
+    final now = DateTime.now();
+    // Find the Monday of the current week (weekday 1 = Monday)
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    
+    final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: List.generate(7, (index) {
+        final day = monday.add(Duration(days: index));
+        final hasEntry = entries.any((e) => 
+            e.createdAt.year == day.year && 
+            e.createdAt.month == day.month && 
+            e.createdAt.day == day.day);
+        
+        final isFuture = day.isAfter(DateTime(now.year, now.month, now.day, 23, 59, 59));
+        final isToday = day.year == now.year && day.month == now.month && day.day == now.day;
+        
+        return Column(
+          children: [
+            Text(
+              days[index],
+              style: GoogleFonts.inter(
+                color: isToday ? Colors.white : Colors.white54,
+                fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Icon(
+              Icons.local_fire_department_rounded,
+              color: hasEntry 
+                  ? Colors.orangeAccent 
+                  : (isFuture ? Colors.white12 : Colors.white24),
+              size: 28,
+            ),
+          ],
+        );
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1102,62 +1165,37 @@ class _StreakCard extends StatelessWidget {
           ],
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Your Streak',
-                        style: GoogleFonts.inter(
-                          color: Colors.white70,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            '$streak',
-                            style: GoogleFonts.outfit(
-                              color: Colors.white,
-                              fontSize: 40,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 6, left: 6),
-                            child: Text(
-                              streak == 1 ? 'day' : 'days',
-                              style: GoogleFonts.inter(
-                                color: Colors.white70,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                const Icon(
+                  Icons.local_fire_department_rounded,
+                  color: Colors.orangeAccent,
+                  size: 32,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '$streak',
+                  style: GoogleFonts.outfit(
+                    color: Colors.white,
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.local_fire_department,
-                    color: Colors.orangeAccent,
-                    size: 36,
+                const SizedBox(width: 8),
+                Text(
+                  'Day Streak',
+                  style: GoogleFonts.inter(
+                    color: Colors.white70,
+                    fontSize: 16,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
+            _buildWeeklyTracker(),
+            const SizedBox(height: 24),
             Container(
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
               decoration: BoxDecoration(
@@ -1205,6 +1243,122 @@ class _StreakCard extends StatelessWidget {
         .slideY(begin: 0.1, end: 0);
   }
 }
+
+class _DailyTasksCard extends StatelessWidget {
+  final bool hasJournaled;
+  final bool hasMood;
+
+  const _DailyTasksCard({
+    required this.hasJournaled,
+    required this.hasMood,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant,
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Daily Quests',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _TaskRow(
+              title: '1x Journaling',
+              isCompleted: hasJournaled,
+              icon: Icons.edit_note_rounded,
+            ),
+            const SizedBox(height: 12),
+            _TaskRow(
+              title: '1x Mood Analysis',
+              isCompleted: hasMood,
+              icon: Icons.insights_rounded,
+            ),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(delay: 200.ms, duration: 400.ms).slideY(begin: 0.1, end: 0);
+  }
+}
+
+class _TaskRow extends StatelessWidget {
+  final String title;
+  final bool isCompleted;
+  final IconData icon;
+
+  const _TaskRow({
+    required this.title,
+    required this.isCompleted,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: isCompleted 
+                ? theme.colorScheme.primary.withValues(alpha: 0.1) 
+                : theme.colorScheme.surfaceContainerHighest,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            color: isCompleted ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+            size: 20,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Text(
+            title,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: isCompleted ? FontWeight.bold : FontWeight.normal,
+              decoration: isCompleted ? TextDecoration.lineThrough : null,
+              color: isCompleted ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+            ),
+          ),
+        ),
+        if (isCompleted)
+          Icon(
+            Icons.check_circle_rounded,
+            color: theme.colorScheme.primary,
+          )
+        else
+          Icon(
+            Icons.radio_button_unchecked_rounded,
+            color: theme.colorScheme.outline,
+          ),
+      ],
+    );
+  }
+}
+
 class _StatItem extends StatelessWidget {
   final String value;
   final String label;
@@ -1403,10 +1557,101 @@ class _JournalEntryCard extends StatelessWidget {
         .slideY(begin: 0.05, end: 0);
   }
 }
-class _MoodTab extends ConsumerWidget {
+class _MoodTab extends ConsumerStatefulWidget {
   const _MoodTab();
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_MoodTab> createState() => _MoodTabState();
+}
+
+class _MoodTabState extends ConsumerState<_MoodTab> {
+  String _timeRange = 'This Week';
+  String _chartType = 'bar';
+  int _offset = 0; // 0 = current, < 0 = past
+
+  void _onSwipe(DragEndDetails details) {
+    if (details.primaryVelocity == null) return;
+    if (details.primaryVelocity! < -300) {
+      if (_offset < 0) setState(() => _offset++);
+    } else if (details.primaryVelocity! > 300) {
+      setState(() => _offset--);
+    }
+  }
+
+  String _getDateRangeText() {
+    final now = DateTime.now();
+    if (_timeRange == 'This Day') {
+      final target = now.add(Duration(days: _offset));
+      return DateFormat('MMM d, yyyy').format(target);
+    } else if (_timeRange == 'This Week') {
+      final monday = now.subtract(Duration(days: now.weekday - 1));
+      final targetMonday = monday.add(Duration(days: _offset * 7));
+      final targetSunday = targetMonday.add(const Duration(days: 6));
+      return '${DateFormat('MMM d').format(targetMonday)} - ${DateFormat('MMM d').format(targetSunday)}';
+    } else {
+      final target = DateTime(now.year, now.month + _offset, 1);
+      return DateFormat('MMMM yyyy').format(target);
+    }
+  }
+
+  List<MoodEntry> _getMockData(List<MoodEntry> realMoods) {
+    final now = DateTime.now();
+    final List<MoodEntry> generated = [];
+
+    if (_timeRange == 'This Day') {
+      final targetDay = now.add(Duration(days: _offset));
+      for (int i = 0; i < 24; i++) {
+        final hasReal = realMoods.where((m) => m.createdAt.year == targetDay.year && m.createdAt.month == targetDay.month && m.createdAt.day == targetDay.day && m.createdAt.hour == i);
+        if (hasReal.isNotEmpty) {
+          generated.add(hasReal.first);
+        } else if (_offset < 0 || (targetDay.day != now.day || i <= now.hour)) {
+          // Add some fake data for past hours
+          if (i > 6 && i % 4 != 0) { // random gaps
+             final val = ((i * 7) % 5) + 1;
+             generated.add(MoodEntry(id: 'm_$i', moodScore: val, createdAt: DateTime(targetDay.year, targetDay.month, targetDay.day, i)));
+          } else {
+             generated.add(MoodEntry(id: 'gap', moodScore: 0, createdAt: DateTime(targetDay.year, targetDay.month, targetDay.day, i)));
+          }
+        } else {
+          generated.add(MoodEntry(id: 'gap', moodScore: 0, createdAt: DateTime(targetDay.year, targetDay.month, targetDay.day, i)));
+        }
+      }
+    } else if (_timeRange == 'This Week') {
+      final monday = now.subtract(Duration(days: now.weekday - 1));
+      final targetMonday = monday.add(Duration(days: _offset * 7));
+      for (int i = 0; i < 7; i++) {
+        final day = targetMonday.add(Duration(days: i));
+        final dayMoods = realMoods.where((m) => m.createdAt.year == day.year && m.createdAt.month == day.month && m.createdAt.day == day.day);
+        if (dayMoods.isNotEmpty) {
+          generated.add(dayMoods.last);
+        } else if (_offset < 0 || day.isBefore(now) || day.isAtSameMomentAs(now)) {
+          final val = ((i * 3) % 4) + 2;
+          generated.add(MoodEntry(id: 'm_$i', moodScore: val, createdAt: day));
+        } else {
+          generated.add(MoodEntry(id: 'gap', moodScore: 0, createdAt: day));
+        }
+      }
+    } else {
+      final targetDate = DateTime(now.year, now.month + _offset, 1);
+      final daysInMonth = DateTime(targetDate.year, targetDate.month + 1, 0).day;
+      for (int i = 1; i <= daysInMonth; i++) {
+        final day = DateTime(targetDate.year, targetDate.month, i);
+        final dayMoods = realMoods.where((m) => m.createdAt.year == day.year && m.createdAt.month == day.month && m.createdAt.day == day.day);
+        if (dayMoods.isNotEmpty) {
+          generated.add(dayMoods.last);
+        } else if (_offset < 0 || day.isBefore(now) || day.isAtSameMomentAs(now)) {
+          final val = ((i * 2) % 4) + 1;
+          generated.add(MoodEntry(id: 'm_$i', moodScore: val, createdAt: day));
+        } else {
+          generated.add(MoodEntry(id: 'gap', moodScore: 0, createdAt: day));
+        }
+      }
+    }
+    return generated;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final weeklyMoodsAsync = ref.watch(weeklyMoodsProvider);
     return SafeArea(
@@ -1430,55 +1675,206 @@ class _MoodTab extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'This Week',
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    height: 160,
-                    child: weeklyMoodsAsync.when(
-                      data: (moods) {
-                        if (moods.isEmpty) {
-                          return const Center(child: Text('No moods logged this week yet.'));
-                        }
-                        return Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: moods.map((m) {
-                            final mood = m.moodScore;
-                            final day = DateFormat('E').format(m.createdAt);
-                            final barHeight = (mood / 5.0) * 120;
-                            return Column(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Text(
-                                  MockDataService.moodEmoji(mood),
-                                  style: const TextStyle(fontSize: 20),
-                                ),
-                                const SizedBox(height: 6),
-                                AnimatedContainer(
-                                  duration: const Duration(milliseconds: 500),
-                                  width: 28,
-                                  height: barHeight,
-                                  decoration: BoxDecoration(
-                                    color: MockDataService.moodColor(mood),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  day,
-                                  style: theme.textTheme.labelSmall,
-                                ),
-                              ],
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _timeRange,
+                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                          items: ['This Day', 'This Week', 'This Month'].map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
                             );
                           }).toList(),
-                        );
-                      },
-                      loading: () => const Center(child: CircularProgressIndicator()),
-                      error: (_, _) => const SizedBox(),
+                          onChanged: (newValue) {
+                            if (newValue != null) {
+                              setState(() {
+                                _timeRange = newValue;
+                                _offset = 0;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.chevron_left_rounded),
+                            onPressed: () => setState(() => _offset--),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.chevron_right_rounded),
+                            onPressed: _offset < 0 ? () => setState(() => _offset++) : null,
+                            color: _offset < 0 ? null : Colors.grey,
+                          ),
+                          IconButton(
+                            icon: Icon(_chartType == 'bar' ? Icons.show_chart_rounded : Icons.bar_chart_rounded),
+                            tooltip: 'Toggle Chart Type',
+                            onPressed: () {
+                              setState(() => _chartType = _chartType == 'bar' ? 'line' : 'bar');
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: Text(
+                        _getDateRangeText(),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  GestureDetector(
+                    onHorizontalDragEnd: _onSwipe,
+                    child: SizedBox(
+                      height: 200,
+                      child: weeklyMoodsAsync.when(
+                        data: (realMoods) {
+                          final displayMoods = _getMockData(realMoods);
+                          final validSpots = displayMoods.where((m) => m.moodScore > 0).toList();
+                          
+                          if (_chartType == 'line') {
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 10, bottom: 10),
+                              child: LineChart(
+                                LineChartData(
+                                  gridData: const FlGridData(show: false),
+                                  titlesData: FlTitlesData(
+                                    leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                    bottomTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                        showTitles: true,
+                                        getTitlesWidget: (value, meta) {
+                                          final intIndex = value.toInt();
+                                          if (intIndex >= 0 && intIndex < displayMoods.length) {
+                                            String label = '';
+                                            if (_timeRange == 'This Day') {
+                                              if (intIndex % 6 == 0) {
+                                                label = intIndex == 0 ? '12am' : '${intIndex > 12 ? intIndex - 12 : intIndex}${intIndex >= 12 ? 'pm' : 'am'}';
+                                              }
+                                            } else if (_timeRange == 'This Week') {
+                                              label = DateFormat('E').format(displayMoods[intIndex].createdAt);
+                                            } else {
+                                              if (intIndex % 5 == 0) {
+                                                label = '${intIndex + 1}';
+                                              }
+                                            }
+                                            return Padding(
+                                              padding: const EdgeInsets.only(top: 8.0),
+                                              child: Text(label, style: theme.textTheme.labelSmall),
+                                            );
+                                          }
+                                          return const SizedBox.shrink();
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                  borderData: FlBorderData(show: false),
+                                  lineBarsData: [
+                                    LineChartBarData(
+                                      spots: validSpots.map((m) {
+                                        return FlSpot(displayMoods.indexOf(m).toDouble(), m.moodScore.toDouble());
+                                      }).toList(),
+                                      isCurved: true,
+                                      color: theme.colorScheme.primary,
+                                      barWidth: 4,
+                                      isStrokeCapRound: true,
+                                      dotData: FlDotData(show: _timeRange != 'This Month'),
+                                      belowBarData: BarAreaData(
+                                        show: true,
+                                        color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                                      ),
+                                    ),
+                                  ],
+                                  minY: 0,
+                                  maxY: 6,
+                                  minX: 0,
+                                  maxX: (displayMoods.length - 1).toDouble(),
+                                ),
+                              ),
+                            );
+                          }
+
+                          return LayoutBuilder(
+                            builder: (context, constraints) {
+                              return SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: displayMoods.map((m) {
+                                      final mood = m.moodScore;
+                                      
+                                      String day = '';
+                                      final idx = displayMoods.indexOf(m);
+                                      if (_timeRange == 'This Day') {
+                                        if (idx % 6 == 0) {
+                                          day = idx == 0 ? '12am' : '${idx > 12 ? idx - 12 : idx}${idx >= 12 ? 'pm' : 'am'}';
+                                        }
+                                      } else if (_timeRange == 'This Week') {
+                                        day = DateFormat('E').format(m.createdAt);
+                                      } else {
+                                        if (idx % 5 == 0) {
+                                          day = '${idx + 1}';
+                                        }
+                                      }
+                                      
+                                      final barHeight = mood > 0 ? (mood / 5.0) * 120 : 0.0;
+                                      return Padding(
+                                        padding: EdgeInsets.symmetric(horizontal: _timeRange == 'This Month' ? 4.0 : 8.0),
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.end,
+                                          children: [
+                                            if (_timeRange != 'This Month' && mood > 0)
+                                              Text(
+                                                MockDataService.moodEmoji(mood),
+                                                style: const TextStyle(fontSize: 16),
+                                              ),
+                                            const SizedBox(height: 6),
+                                            AnimatedContainer(
+                                              duration: const Duration(milliseconds: 500),
+                                              width: _timeRange == 'This Month' ? 8 : 24,
+                                              height: barHeight,
+                                              decoration: BoxDecoration(
+                                                color: mood > 0 ? MockDataService.moodColor(mood) : Colors.transparent,
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            if (day.isNotEmpty)
+                                              Text(
+                                                day,
+                                                style: theme.textTheme.labelSmall,
+                                              )
+                                            else
+                                              const SizedBox(height: 14), // placeholder for label height
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
+                              );
+                            }
+                          );
+                        },
+                        loading: () => const Center(child: CircularProgressIndicator()),
+                        error: (_, _) => const SizedBox(),
+                      ),
                     ),
                   ),
                 ],

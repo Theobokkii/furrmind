@@ -238,6 +238,15 @@ class _CatoChatScreenState extends State<CatoChatScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          Text(
+                            'Cato is typing',
+                            style: GoogleFonts.nunito(
+                              color: theme.colorScheme.primary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
                           _TypingIndicator(delay: 0.ms),
                           const SizedBox(width: 4),
                           _TypingIndicator(delay: 150.ms),

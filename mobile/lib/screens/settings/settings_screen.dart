@@ -138,11 +138,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   child: Column(
                     children: [
                       _ThemeSelectorItem(themeId: 'default', title: 'Sage Default', requiredLevel: 1, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'default'),
-                      _ThemeSelectorItem(themeId: 'midnight', title: 'Midnight Indigo', requiredLevel: 1, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'midnight'),
-                      _ThemeSelectorItem(themeId: 'blossom', title: 'Cherry Blossom', requiredLevel: 2, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'blossom'),
-                      _ThemeSelectorItem(themeId: 'mint', title: 'Mint Apple', requiredLevel: 3, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'mint'),
-                      _ThemeSelectorItem(themeId: 'lavender', title: 'Lavender Dream', requiredLevel: 4, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'lavender'),
-                      _ThemeSelectorItem(themeId: 'crimson', title: 'Crimson Night', requiredLevel: 5, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'crimson'),
+                      _ThemeSelectorItem(themeId: 'midnight', title: 'Twilight Slate', requiredLevel: 1, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'midnight'),
+                      _ThemeSelectorItem(themeId: 'blossom', title: 'Dusty Rose', requiredLevel: 2, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'blossom'),
+                      _ThemeSelectorItem(themeId: 'mint', title: 'Seafoam Glow', requiredLevel: 3, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'mint'),
+                      _ThemeSelectorItem(themeId: 'lavender', title: 'Lilac Dream', requiredLevel: 4, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'lavender'),
+                      _ThemeSelectorItem(themeId: 'crimson', title: 'Warm Terracotta', requiredLevel: 5, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'crimson'),
                     ],
                   ),
                 ),

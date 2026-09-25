@@ -1,6 +1,5 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/services/gamification_service.dart';
 class MockUser {
@@ -35,11 +34,11 @@ class LeaderboardTab extends ConsumerWidget {
     return 'Bronze League 🥉';
   }
   Color _getLeagueColor(int points) {
-    if (points >= 1000) return Colors.cyan;
-    if (points >= 600) return Colors.blueGrey;
-    if (points >= 300) return Colors.amber;
-    if (points >= 100) return Colors.grey.shade400;
-    return Colors.brown.shade400;
+    if (points >= 1000) return const Color(0xFF00838F); // Deep Cyan
+    if (points >= 600) return const Color(0xFF37474F); // Deep Slate
+    if (points >= 300) return const Color(0xFFB78103); // Deep Rich Gold
+    if (points >= 100) return const Color(0xFF546E7A); // Deep Silver Slate
+    return const Color(0xFF5D4037); // Deep Bronze
   }
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -64,8 +63,8 @@ class LeaderboardTab extends ConsumerWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      leagueColor.withValues(alpha: 0.8),
-                      leagueColor.withValues(alpha: 0.4),
+                      leagueColor,
+                      leagueColor.withValues(alpha: 0.85),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -98,7 +97,7 @@ class LeaderboardTab extends ConsumerWidget {
                           onPressed: () => _showRankLadder(context),
                         ),
                       ],
-                    ).animate().fadeIn().slideY(begin: 0.2, end: 0),
+                    ),
                     const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -106,7 +105,7 @@ class LeaderboardTab extends ConsumerWidget {
                         _StatBox(label: 'Rank', value: '#$userRank'),
                         _StatBox(label: 'Points', value: '${profile.totalPoints}'),
                       ],
-                    ).animate().fadeIn(delay: 200.ms),
+                    ),
                   ],
                 ),
               ),
@@ -119,7 +118,7 @@ class LeaderboardTab extends ConsumerWidget {
                     final isMe = user.name == profile.username;
                     return Card(
                       color: isMe ? theme.colorScheme.primaryContainer : null,
-                      elevation: isMe ? 4 : 1,
+                      elevation: isMe ? 3 : 1,
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
                         leading: Row(
@@ -131,7 +130,7 @@ class LeaderboardTab extends ConsumerWidget {
                                 '${index + 1}',
                                 style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  color: index < 3 ? leagueColor : null,
+                                  color: index < 3 ? leagueColor : theme.colorScheme.onSurface,
                                 ),
                               ),
                             ),
@@ -145,17 +144,29 @@ class LeaderboardTab extends ConsumerWidget {
                           user.name,
                           style: TextStyle(
                             fontWeight: isMe ? FontWeight.bold : FontWeight.normal,
+                            color: isMe ? theme.colorScheme.onPrimaryContainer : null,
                           ),
                         ),
-                        trailing: Text(
-                          '${user.points} XP',
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.bold,
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: isMe
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${user.points} XP',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: isMe
+                                  ? theme.colorScheme.onPrimary
+                                  : theme.colorScheme.onSurface,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
-                    ).animate().fadeIn(delay: Duration(milliseconds: 100 + (index * 50))).slideX(begin: 0.1, end: 0);
+                    );
                   },
                 ),
               ),

@@ -60,28 +60,28 @@ class AppColors {
 
   static const Map<String, Map<String, List<Color>>> themeVariants = {
     'default': {
-      'light': [Color(0xFF7C9A7E), Color(0xFFD9A57E), Color(0xFFFAF7F2), Color(0xFFF2EDE4), Color(0xFF3D3229), Color(0xFF6B5D4F)],
-      'dark': [Color(0xFF8BA68D), Color(0xFFE0B494), Color(0xFF1E1A17), Color(0xFF2C2621), Color(0xFFF2EDE4), Color(0xFFC4B8A8)],
+      'light': [Color(0xFF829E82), Color(0xFFD1B79E), Color(0xFFFCFBF9), Color(0xFFF5F2ED), Color(0xFF4A524A), Color(0xFF758075)],
+      'dark': [Color(0xFF96B396), Color(0xFFE6CCB3), Color(0xFF1A1C1A), Color(0xFF252925), Color(0xFFE3E8E3), Color(0xFFA3ADA3)],
     },
     'midnight': {
-      'light': [Color(0xFF5865F2), Color(0xFFEB459E), Color(0xFFF2F3F5), Color(0xFFE3E5E8), Color(0xFF2E3338), Color(0xFF4F545C)],
-      'dark': [Color(0xFF5865F2), Color(0xFFEB459E), Color(0xFF0C0C0D), Color(0xFF1E1F22), Color(0xFFF2F3F5), Color(0xFFB5BAC1)],
+      'light': [Color(0xFF7B90A7), Color(0xFFB8A69E), Color(0xFFF7F9FB), Color(0xFFEEF2F6), Color(0xFF3C4753), Color(0xFF6A798A)],
+      'dark': [Color(0xFF92A9C2), Color(0xFFCFBCB4), Color(0xFF17191C), Color(0xFF21252A), Color(0xFFE6EAEF), Color(0xFF96A6B8)],
     },
     'blossom': {
-      'light': [Color(0xFFE9969C), Color(0xFFF47B89), Color(0xFFFDF7F7), Color(0xFFFDE8EA), Color(0xFF4A3C3E), Color(0xFF867275)],
-      'dark': [Color(0xFFD47C83), Color(0xFFE86073), Color(0xFF2A1C1D), Color(0xFF3B2527), Color(0xFFFDF7F7), Color(0xFFC1B0B2)],
+      'light': [Color(0xFFC99D9D), Color(0xFFA2AFA0), Color(0xFFFDFBFB), Color(0xFFF7F2F2), Color(0xFF5A4444), Color(0xFF8B7373)],
+      'dark': [Color(0xFFD9AFAF), Color(0xFFB4C2B2), Color(0xFF1C1818), Color(0xFF2A2323), Color(0xFFEFE6E6), Color(0xFFB8A4A4)],
     },
     'mint': {
-      'light': [Color(0xFF62C2A6), Color(0xFF2D9C8A), Color(0xFFF4F9F8), Color(0xFFE3F3EF), Color(0xFF263C38), Color(0xFF5D7B75)],
-      'dark': [Color(0xFF53A68F), Color(0xFF247F70), Color(0xFF16211F), Color(0xFF20322E), Color(0xFFF4F9F8), Color(0xFF91B1A9)],
+      'light': [Color(0xFF7EABA2), Color(0xFFD2BCA2), Color(0xFFF5FAF9), Color(0xFFEBF2F0), Color(0xFF38524D), Color(0xFF65827D)],
+      'dark': [Color(0xFF92C2B9), Color(0xFFE8D2B7), Color(0xFF161A19), Color(0xFF212927), Color(0xFFE5EFEC), Color(0xFF8FA8A3)],
     },
     'lavender': {
-      'light': [Color(0xFF9993E1), Color(0xFF7F78CD), Color(0xFFF7F6FB), Color(0xFFEBE9F5), Color(0xFF2C2A3D), Color(0xFF635E7A)],
-      'dark': [Color(0xFF867EC2), Color(0xFF6B64AD), Color(0xFF1B1925), Color(0xFF262436), Color(0xFFF7F6FB), Color(0xFF9892B3)],
+      'light': [Color(0xFFA39CB5), Color(0xFFB0C4A6), Color(0xFFF9F8FB), Color(0xFFF1EFF5), Color(0xFF464152), Color(0xFF736D82)],
+      'dark': [Color(0xFFB8B1CC), Color(0xFFC5DAC0), Color(0xFF19181C), Color(0xFF25232A), Color(0xFFEBE9F0), Color(0xFF9F98B0)],
     },
     'crimson': {
-      'light': [Color(0xFFD15959), Color(0xFFAB4040), Color(0xFFFCF5F5), Color(0xFFF5E6E6), Color(0xFF3F2121), Color(0xFF845B5B)],
-      'dark': [Color(0xFFBA4A4A), Color(0xFF923030), Color(0xFF1F1111), Color(0xFF2E1A1A), Color(0xFFFCF5F5), Color(0xFFB59393)],
+      'light': [Color(0xFFC28E7C), Color(0xFF8AA6A6), Color(0xFFFCF9F8), Color(0xFFF5EDE9), Color(0xFF5C3F35), Color(0xFF8A6B60)],
+      'dark': [Color(0xFFD4A392), Color(0xFFA0BFBF), Color(0xFF1C1614), Color(0xFF2B211E), Color(0xFFEFE8E5), Color(0xFFB59A90)],
     },
   };
 }
@@ -208,15 +208,26 @@ class AppTheme {
     final textPrimary = variant[4];
     final textSecondary = variant[5];
 
+    final bool isDarkPrimary = ThemeData.estimateBrightnessForColor(primary) == Brightness.dark;
+    final Color onPrimary = isDarkPrimary ? Colors.white : const Color(0xFF1A1A1A);
+    final Color primaryContainer = primary.withValues(alpha: 0.2);
+    final Color onPrimaryContainer = textPrimary;
+    final Color secondaryContainer = secondary.withValues(alpha: 0.2);
+    final Color onSecondaryContainer = textPrimary;
+
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
       colorScheme: ColorScheme(
         brightness: brightness,
         primary: primary,
-        onPrimary: bg,
+        onPrimary: onPrimary,
+        primaryContainer: primaryContainer,
+        onPrimaryContainer: onPrimaryContainer,
         secondary: secondary,
-        onSecondary: bg,
+        onSecondary: onPrimary,
+        secondaryContainer: secondaryContainer,
+        onSecondaryContainer: onSecondaryContainer,
         error: AppColors.error,
         onError: Colors.white,
         surface: surface,
@@ -270,7 +281,7 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primary,
-          foregroundColor: bg,
+          foregroundColor: onPrimary,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -279,7 +290,7 @@ class AppTheme {
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: primary,
-        foregroundColor: bg,
+        foregroundColor: onPrimary,
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       ),
