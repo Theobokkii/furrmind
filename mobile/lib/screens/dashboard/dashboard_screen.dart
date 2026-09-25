@@ -1,10 +1,14 @@
+import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../core/models/journal_entry.dart';
+import '../../core/models/mood_entry.dart';
 import '../../core/services/journal_storage.dart';
 import '../../core/services/mock_data_service.dart';
 import '../../core/services/gamification_service.dart';
@@ -42,9 +46,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         },
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.book_outlined),
-            selectedIcon: Icon(Icons.book),
-            label: 'Journal',
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home_rounded),
+            label: 'Home',
           ),
           NavigationDestination(
             icon: Icon(Icons.chat_bubble_outline_rounded),
@@ -96,16 +100,49 @@ class _HomeTab extends ConsumerWidget {
     final entriesAsync = ref.watch(journalEntriesProvider);
     final profileAsync = ref.watch(userProfileProvider);
     final todayMoodAsync = ref.watch(todayMoodProvider);
-    return SafeArea(
-      child: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(journalEntriesProvider);
-          ref.invalidate(userProfileProvider);
-          ref.invalidate(todayMoodProvider);
-        },
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
+    
+    int todayScore = 3;
+    final currentMood = todayMoodAsync.valueOrNull;
+    if (currentMood != null) {
+      todayScore = currentMood.moodScore;
+    } else {
+      // Mock score for demo
+      todayScore = 5;
+    }
+    
+    Color moodColor = MockDataService.moodColor(todayScore);
+
+    return Stack(
+      children: [
+        // Full Page Weather Background
+        Positioned.fill(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  moodColor.withValues(alpha: 0.2),
+                  theme.colorScheme.surface,
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+          ),
+        ),
+        Positioned.fill(
+          child: _WeatherAnimationBackground(score: todayScore),
+        ),
+        // Content
+        SafeArea(
+          child: RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(journalEntriesProvider);
+              ref.invalidate(userProfileProvider);
+              ref.invalidate(todayMoodProvider);
+            },
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
                 child: Row(
@@ -144,8 +181,16 @@ class _HomeTab extends ConsumerWidget {
             SliverToBoxAdapter(
               child: todayMoodAsync.when(
                 data: (mood) {
-                  if (mood != null) return const SizedBox.shrink();
-                  return _DailyMoodCheckIn();
+                  if (mood == null) {
+                    // Show CheckIn prompt, but also show a mock MoodCard for demonstration!
+                    return Column(
+                      children: [
+                        _DailyMoodCheckIn(),
+                        _TodayMoodCard(mood: MoodEntry(id: 'mock', moodScore: 5, createdAt: DateTime.now())),
+                      ],
+                    );
+                  }
+                  return _TodayMoodCard(mood: mood);
                 },
                 loading: () => const SizedBox.shrink(),
                 error: (_, _) => const SizedBox.shrink(),
@@ -177,6 +222,15 @@ class _HomeTab extends ConsumerWidget {
                   ],
                 ),
               ).animate().fadeIn(delay: 200.ms, duration: 400.ms),
+            ),
+            const SliverToBoxAdapter(
+              child: _TrendSummaryCard(),
+            ),
+            const SliverToBoxAdapter(
+              child: _TodayEmotionAnalysisCard(),
+            ),
+            const SliverToBoxAdapter(
+              child: _MeowFactCard(),
             ),
             SliverToBoxAdapter(
               child: Padding(
@@ -251,6 +305,8 @@ class _HomeTab extends ConsumerWidget {
           ],
         ),
       ),
+    ),
+      ],
     );
   }
 }
@@ -305,6 +361,625 @@ class _DailyMoodCheckInState extends ConsumerState<_DailyMoodCheckIn> {
         ),
       ),
     ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0);
+  }
+}
+
+class _TodayMoodCard extends StatelessWidget {
+  final dynamic mood;
+  const _TodayMoodCard({required this.mood});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    int score = 3;
+    try { 
+      score = mood.moodScore; 
+    } catch (e) {
+      // Ignore fallback
+    }
+
+    String emoji = MockDataService.moodEmoji(score);
+    Color color = MockDataService.moodColor(score);
+    String label = _getMoodLabel(score);
+    Color textColor = Color.lerp(color, theme.brightness == Brightness.dark ? Colors.white : Colors.black, 0.5) ?? color;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: theme.brightness == Brightness.dark 
+                ? Colors.black.withValues(alpha: 0.2)
+                : Colors.white.withValues(alpha: 0.3),
+            border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
+          ),
+          child: Stack(
+            children: [
+              // Glassmorphism Blur
+              Positioned.fill(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                  child: Container(color: Colors.transparent),
+                ),
+              ),
+
+              // Content
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => context.push('/mood-checkin'),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Left Side
+                        Expanded(
+                          flex: 3,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Your Emotion\nfor today:',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.2,
+                                  color: theme.brightness == Brightness.dark ? Colors.white : textColor,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: color.withValues(alpha: 0.4),
+                                      blurRadius: 20,
+                                      offset: const Offset(0, 4),
+                                    )
+                                  ]
+                                ),
+                                child: Text(emoji, style: const TextStyle(fontSize: 72)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Right Side
+                        Expanded(
+                          flex: 4,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                label,
+                                style: theme.textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  color: theme.brightness == Brightness.dark ? Colors.white : textColor,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              // Info lines
+                              Text(
+                                _getWeatherText(score),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.brightness == Brightness.dark 
+                                      ? Colors.white.withValues(alpha: 0.9) 
+                                      : textColor.withValues(alpha: 0.9),
+                                  height: 1.4,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: theme.brightness == Brightness.dark 
+                                      ? Colors.black.withValues(alpha: 0.2)
+                                      : Colors.white.withValues(alpha: 0.4),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  'Score: $score/5 • Inten: ${_getIntensityLabel(score)}',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0);
+  }
+
+  String _getIntensityLabel(int score) {
+    if (score == 1 || score == 5) return 'High';
+    if (score == 2 || score == 4) return 'Medium';
+    return 'Low';
+  }
+
+  String _getMoodLabel(int score) {
+    switch (score) {
+      case 1: return 'Tough & Heavy';
+      case 2: return 'A Bit Down';
+      case 3: return 'Okay / Neutral';
+      case 4: return 'Pretty Good';
+      case 5: return 'Fantastic!';
+      default: return 'Okay';
+    }
+  }
+
+  String _getWeatherText(int score) {
+    switch (score) {
+      case 1: return 'You must have been tired, lately? (っ- ‸ - ς)';
+      case 2: return 'It\'s a gloomy day, but I\'m here for you! ( ◡ ‿ ◡ )';
+      case 3: return 'Just a normal day, rolling along~ ( ˘ ▽ ˘ )';
+      case 4: return 'Let the shine appear in your heart, meow! (≧◡≦)';
+      case 5: return 'Purr-fect! You are glowing today! (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧';
+      default: return 'Take it one step at a time, meow~ (=^･ω･^=)';
+    }
+  }
+}
+
+class _WeatherAnimationBackground extends StatelessWidget {
+  final int score;
+  const _WeatherAnimationBackground({required this.score});
+
+  @override
+  Widget build(BuildContext context) {
+    if (score == 1) {
+      // Rain
+      return Stack(
+        children: List.generate(10, (index) {
+          return Positioned(
+            left: 10.0 + (index * 35),
+            top: -20,
+            child: Icon(Icons.water_drop, color: Colors.blueAccent.withValues(alpha: 0.4), size: 20)
+                .animate(onPlay: (controller) => controller.repeat())
+                .slideY(begin: 0, end: 15, duration: (800 + (index * 200)).ms)
+                .fadeIn(duration: 200.ms)
+                .fadeOut(delay: 600.ms),
+          );
+        }),
+      );
+    } else if (score == 2) {
+      // Cloudy / Drizzle
+      return Stack(
+        children: [
+          Positioned(
+            right: -20,
+            top: -20,
+            child: Icon(Icons.cloud, color: Colors.grey.withValues(alpha: 0.4), size: 140)
+                .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                .slideX(begin: 0, end: -0.1, duration: 4.seconds),
+          ),
+          Positioned(
+            left: -40,
+            bottom: -20,
+            child: Icon(Icons.cloud, color: Colors.blueGrey.withValues(alpha: 0.2), size: 100)
+                .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                .slideX(begin: 0, end: 0.15, duration: 5.seconds),
+          ),
+        ],
+      );
+    } else if (score == 4 || score == 5) {
+      // Sunny / Sparkles
+      return Stack(
+        children: [
+          Positioned(
+            right: -40,
+            top: -40,
+            child: Icon(score == 5 ? Icons.star_rounded : Icons.wb_sunny, color: Colors.amber.withValues(alpha: 0.3), size: 180)
+                .animate(onPlay: (controller) => controller.repeat())
+                .rotate(duration: 15.seconds),
+          ),
+          if (score == 5) ...List.generate(3, (index) {
+            return Positioned(
+              left: 20.0 + (index * 60),
+              bottom: 20.0 + (index * 30),
+              child: Icon(Icons.star_border_rounded, color: Colors.amber.withValues(alpha: 0.4), size: 30)
+                  .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                  .scaleXY(begin: 0.8, end: 1.2, duration: (600 + (index * 200)).ms)
+                  .fadeIn(),
+            );
+          }),
+        ],
+      );
+    } else {
+      // Normal Clouds
+      return Stack(
+        children: [
+          Positioned(
+            left: -20,
+            top: 20,
+            child: Icon(Icons.cloud, color: Colors.lightBlue.withValues(alpha: 0.2), size: 120)
+                .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                .slideX(begin: 0, end: 0.15, duration: 6.seconds),
+          ),
+        ],
+      );
+    }
+  }
+}
+
+class _TodayEmotionAnalysisCard extends StatefulWidget {
+  const _TodayEmotionAnalysisCard();
+  @override
+  State<_TodayEmotionAnalysisCard> createState() => _TodayEmotionAnalysisCardState();
+}
+
+class _TodayEmotionAnalysisCardState extends State<_TodayEmotionAnalysisCard> {
+  String _chartType = 'Bar Chart';
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    // Mock data for today's emotions (adaptive to chatbot/mood analyzer)
+    final emotionData = [
+      {'label': 'Joy', 'value': 40.0, 'color': Colors.amber},
+      {'label': 'Calm', 'value': 30.0, 'color': Colors.blue[300]!},
+      {'label': 'Anx.', 'value': 15.0, 'color': Colors.purple[300]!},
+      {'label': 'Sad', 'value': 15.0, 'color': Colors.blueGrey},
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Card(
+        elevation: 0,
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.1)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Emotion Intensity',
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  DropdownButton<String>(
+                    value: _chartType,
+                    underline: const SizedBox(),
+                    items: ['Bar Chart', 'Pie Chart'].map((type) {
+                      return DropdownMenuItem(
+                        value: type,
+                        child: Text(type, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold)),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) setState(() => _chartType = val);
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                height: 180,
+                child: _chartType == 'Pie Chart' 
+                  ? _buildPieChart(emotionData, theme) 
+                  : _buildBarChart(emotionData, theme),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ).animate().fadeIn(delay: 250.ms, duration: 400.ms).slideY(begin: 0.1, end: 0);
+  }
+
+  Widget _buildPieChart(List<Map<String, dynamic>> data, ThemeData theme) {
+    return Row(
+      children: [
+        Expanded(
+          flex: 3,
+          child: PieChart(
+            PieChartData(
+              sectionsSpace: 2,
+              centerSpaceRadius: 35,
+              sections: data.map((e) {
+                return PieChartSectionData(
+                  color: e['color'] as Color,
+                  value: e['value'] as double,
+                  title: '${(e['value'] as double).toInt()}%',
+                  radius: 45,
+                  titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+        Expanded(
+          flex: 2,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: data.map((e) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 12, 
+                      height: 12, 
+                      decoration: BoxDecoration(color: e['color'] as Color, shape: BoxShape.circle)
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      e['label'] as String, 
+                      style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBarChart(List<Map<String, dynamic>> data, ThemeData theme) {
+    return BarChart(
+      BarChartData(
+        alignment: BarChartAlignment.spaceAround,
+        maxY: 50,
+        barTouchData: BarTouchData(enabled: false),
+        titlesData: FlTitlesData(
+          show: true,
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                if (value >= 0 && value < data.length) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      data[value.toInt()]['label'] as String,
+                      style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 28,
+              getTitlesWidget: (value, meta) {
+                if (value == 0 || value == 25 || value == 50) {
+                  return Text(
+                    '${value.toInt()}%', 
+                    style: theme.textTheme.labelSmall?.copyWith(color: theme.hintColor, fontSize: 10),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        ),
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: 25,
+          getDrawingHorizontalLine: (value) => FlLine(
+            color: theme.dividerColor.withValues(alpha: 0.5), 
+            strokeWidth: 1, 
+            dashArray: [4, 4]
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+        barGroups: data.asMap().entries.map((entry) {
+          final idx = entry.key;
+          final item = entry.value;
+          return BarChartGroupData(
+            x: idx,
+            barRods: [
+              BarChartRodData(
+                toY: item['value'] as double,
+                color: item['color'] as Color,
+                width: 28,
+                borderRadius: BorderRadius.circular(6),
+                backDrawRodData: BackgroundBarChartRodData(
+                  show: true,
+                  toY: 50,
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                )
+              ),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+
+class _TrendSummaryCard extends ConsumerWidget {
+  const _TrendSummaryCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Card(
+        elevation: 0,
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.1)),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: () => context.push('/history'),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.secondary.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(Icons.auto_graph_rounded, color: theme.colorScheme.secondary),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Weekly Trend',
+                            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          const Spacer(),
+                          Icon(Icons.chevron_right_rounded, size: 16, color: theme.colorScheme.onSurfaceVariant),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'You\'ve felt mostly Positive this week. Keep up the good momentum!',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ).animate().fadeIn(delay: 150.ms, duration: 400.ms).slideY(begin: 0.1, end: 0);
+  }
+}
+
+class _MeowFactCard extends StatefulWidget {
+  const _MeowFactCard();
+
+  @override
+  State<_MeowFactCard> createState() => _MeowFactCardState();
+}
+
+class _MeowFactCardState extends State<_MeowFactCard> {
+  late Timer _timer;
+  int _factIndex = 0;
+
+  final List<String> _facts = [
+    "Did you know? Naming your emotions (affect labeling) can reduce the intensity of sadness and anger in the brain. Meow! 🐾",
+    "Purr-spective matters! CBT helps us reframe 'I always fail' to 'I struggled this time, but I can learn'. 😸",
+    "Feeling anxious? Taking deep, slow breaths signals your nervous system to chill out. Like a sleeping cat! 🐈💤",
+    "Emotions are like passing clouds. They come and go. Don't let them dictate your entire day! 🌦️🐈",
+    "Cognitive distortions are just your brain's fur-balls! Cough them out by challenging negative thoughts. 🧶",
+    "Action precedes motivation! Sometimes you just have to start playing with the yarn before you feel like it. 🐾",
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Change fact every 5 seconds for demonstration
+    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted) {
+        setState(() {
+          _factIndex = (_factIndex + 1) % _facts.length;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Card(
+        elevation: 0,
+        color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.3),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: theme.colorScheme.tertiary.withValues(alpha: 0.2)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Text('💡', style: TextStyle(fontSize: 20)),
+                  const SizedBox(width: 8),
+                  Text(
+                    'MeowFact!',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.tertiary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              AnimatedSwitcher(
+                duration: 500.ms,
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0.0, 0.2),
+                        end: Offset.zero,
+                      ).animate(animation),
+                      child: child,
+                    ),
+                  );
+                },
+                child: Text(
+                  _facts[_factIndex],
+                  key: ValueKey<int>(_factIndex),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    height: 1.4,
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ).animate().fadeIn(delay: 300.ms, duration: 400.ms);
   }
 }
 class _StreakCard extends StatelessWidget {

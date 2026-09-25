@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -32,13 +33,29 @@ class _CatoChatScreenState extends State<CatoChatScreen> {
     _controller.clear();
     _scrollToBottom();
 
-    // Mock Cato response
+    // Mock Cato CBT response
     Future.delayed(const Duration(seconds: 2), () {
       if (!mounted) return;
       setState(() {
         _isTyping = false;
+        
+        String response = "";
+        final lowerText = text.toLowerCase();
+        
+        if (lowerText.contains("sad") || lowerText.contains("depress") || lowerText.contains("down")) {
+          response = "I'm sorry you're feeling this way. It's completely valid to feel sad sometimes. In CBT, we call this a wave. Instead of fighting it, what if we just observe it for a moment? What physical sensations are you feeling right now?";
+        } else if (lowerText.contains("anxious") || lowerText.contains("worry") || lowerText.contains("scared") || lowerText.contains("overwhelmed")) {
+          response = "That sounds really overwhelming. Anxiety often tells us that we have to have everything figured out right now. Can we try a simple grounding exercise? Name 3 things you can see around you.";
+        } else if (lowerText.contains("angry") || lowerText.contains("mad") || lowerText.contains("frustrat")) {
+          response = "Your frustration makes total sense. Anger is usually a protective emotion. Let's take a deep breath. Is there a boundary of yours that felt crossed today?";
+        } else if (lowerText.contains("hate") || lowerText.contains("always") || lowerText.contains("never")) {
+          response = "I hear you. It sounds like you might be experiencing some 'All-or-Nothing' thinking right now. Let's try to find a softer perspective together. What's one small piece of nuance we might be missing?";
+        } else {
+          response = "Thank you for sharing that with me. Every thought you put into words is a step toward understanding yourself better. Would you like to explore this feeling deeper, or would you prefer a distraction?";
+        }
+
         _messages.add({
-          "text": "I hear you. It sounds like you might be experiencing some 'All-or-Nothing' thinking. Let's try to find a softer perspective together. What's one small good thing that happened today?",
+          "text": response,
           "isUser": false,
           "isCato": true,
         });
@@ -71,8 +88,15 @@ class _CatoChatScreenState extends State<CatoChatScreen> {
     final theme = Theme.of(context);
     
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
+        flexibleSpace: ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(color: theme.colorScheme.surface.withValues(alpha: 0.7)),
+          ),
+        ),
         title: Row(
           children: [
             Container(
@@ -108,11 +132,29 @@ class _CatoChatScreenState extends State<CatoChatScreen> {
         ),
         centerTitle: false,
         elevation: 0,
-        backgroundColor: theme.colorScheme.surface,
+        backgroundColor: Colors.transparent,
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    theme.colorScheme.primary.withValues(alpha: 0.3),
+                    theme.colorScheme.tertiary.withValues(alpha: 0.2),
+                    theme.colorScheme.surface,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                Expanded(
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
@@ -136,28 +178,38 @@ class _CatoChatScreenState extends State<CatoChatScreen> {
                         const SizedBox(width: 8),
                       ],
                       Flexible(
-                        child: Container(
-                          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                          decoration: BoxDecoration(
-                            color: isUser 
-                                ? theme.colorScheme.primary 
-                                : theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.only(
-                              topLeft: const Radius.circular(20),
-                              topRight: const Radius.circular(20),
-                              bottomLeft: Radius.circular(isUser ? 20 : 4),
-                              bottomRight: Radius.circular(isUser ? 4 : 20),
-                            ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(20),
+                            topRight: const Radius.circular(20),
+                            bottomLeft: Radius.circular(isUser ? 20 : 4),
+                            bottomRight: Radius.circular(isUser ? 4 : 20),
                           ),
-                          child: Text(
-                            msg["text"] as String,
-                            style: GoogleFonts.inter(
-                              color: isUser 
-                                  ? theme.colorScheme.onPrimary 
-                                  : theme.colorScheme.onSurface,
-                              fontSize: 15,
-                              height: 1.4,
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                            child: Container(
+                              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                              decoration: BoxDecoration(
+                                color: isUser 
+                                    ? theme.colorScheme.primary.withValues(alpha: 0.75) 
+                                    : theme.brightness == Brightness.dark 
+                                        ? Colors.white.withValues(alpha: 0.1)
+                                        : Colors.white.withValues(alpha: 0.6),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                ),
+                              ),
+                              child: Text(
+                                msg["text"] as String,
+                                style: GoogleFonts.inter(
+                                  color: isUser 
+                                      ? theme.colorScheme.onPrimary 
+                                      : theme.colorScheme.onSurface,
+                                  fontSize: 15,
+                                  height: 1.4,
+                                ),
+                              ),
                             ),
                           ),
                         ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.1, end: 0),
@@ -198,40 +250,49 @@ class _CatoChatScreenState extends State<CatoChatScreen> {
                 ),
               ),
             ),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: theme.scaffoldBackgroundColor,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 10,
-                  offset: const Offset(0, -5),
+          // TextField Area
+          ClipRRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface.withValues(alpha: 0.6),
+                  border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.2))),
                 ),
-              ],
-            ),
-            child: SafeArea(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      decoration: InputDecoration(
-                        hintText: 'Share what\'s on your mind...',
-                        hintStyle: TextStyle(
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(28),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                      ),
-                      maxLines: null,
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => _send(),
+                child: SafeArea(
+                  top: false,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _controller,
+                          decoration: InputDecoration(
+                            hintText: 'Share what\'s on your mind...',
+                            hintStyle: TextStyle(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(28),
+                              borderSide: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(28),
+                              borderSide: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(28),
+                              borderSide: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.5)),
+                            ),
+                            filled: true,
+                            fillColor: theme.brightness == Brightness.dark 
+                                ? Colors.black.withValues(alpha: 0.2)
+                                : Colors.white.withValues(alpha: 0.4),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                          ),
+                          maxLines: null,
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) => _send(),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -247,6 +308,11 @@ class _CatoChatScreenState extends State<CatoChatScreen> {
                   ),
                 ],
               ),
+            ),
+          ),
+        ),
+      ),
+              ],
             ),
           ),
         ],

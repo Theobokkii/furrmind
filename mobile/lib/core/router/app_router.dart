@@ -11,6 +11,9 @@ import '../../screens/profile/edit_profile_screen.dart';
 import '../../screens/chat/friend_chat_screen.dart';
 import '../../screens/chat/cato_chat_screen.dart';
 import '../../screens/mood/mood_checkin_screen.dart';
+import '../../screens/mood/mood_result_screen.dart';
+import '../../core/services/mood_service.dart';
+
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 final appRouter = GoRouter(
@@ -58,6 +61,13 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/mood-checkin',
       builder: (context, state) => const MoodCheckInScreen(),
+    ),
+    GoRoute(
+      path: '/mood-result',
+      builder: (context, state) {
+        final emotion = state.extra as EmotionDefinition;
+        return MoodResultScreen(primaryEmotion: emotion);
+      },
     ),
   ],
   redirect: (context, state) async {

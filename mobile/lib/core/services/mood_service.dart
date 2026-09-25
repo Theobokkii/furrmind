@@ -83,6 +83,13 @@ class MoodService {
 
     // Give XP (10 for standard, 2 for micro)
     await gamification.addPoints(10, reason: 'Daily Mood Check-in');
+    
+    // Log the mood score for the dashboard
+    // Valence is -2 to 2. Map to 1 to 5.
+    int score = primary.valence + 3;
+    if (score < 1) score = 1;
+    if (score > 5) score = 5;
+    await gamification.logMood(score);
 
     return entry;
   }

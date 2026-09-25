@@ -44,10 +44,9 @@ class _MoodCheckInScreenState extends ConsumerState<MoodCheckInScreen> {
     );
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Check-in saved! +10 XP ✨')),
-      );
-      context.pop();
+      // Instead of pop, go to the result screen with the chosen emotion
+      // We pass the emotion via extra to the router
+      context.pushReplacement('/mood-result', extra: _primary);
     }
   }
 
@@ -211,8 +210,11 @@ class _MoodCheckInScreenState extends ConsumerState<MoodCheckInScreen> {
                             selected: isSelected,
                             onSelected: (val) {
                               setState(() {
-                                if (val && _tags.length < 5) _tags.add(tag);
-                                else _tags.remove(tag);
+                                if (val && _tags.length < 5) {
+                                  _tags.add(tag);
+                                } else {
+                                  _tags.remove(tag);
+                                }
                               });
                             },
                           );
