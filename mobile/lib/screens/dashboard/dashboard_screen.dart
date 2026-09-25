@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -17,15 +18,17 @@ import '../../core/utils/image_helper.dart';
 import '../chat/cato_chat_screen.dart';
 import 'social_tab.dart';
 import 'leaderboard_tab.dart';
+final dashboardTabProvider = StateProvider<int>((ref) => 0);
+
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
   @override
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  int _currentIndex = 0;
   @override
   Widget build(BuildContext context) {
+    final currentIndex = ref.watch(dashboardTabProvider);
     final pages = [
       const _HomeTab(),
       const CatoChatScreen(),
@@ -36,13 +39,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     ];
     return Scaffold(
       body: IndexedStack(
-        index: _currentIndex,
+        index: currentIndex,
         children: pages,
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
+        selectedIndex: currentIndex,
         onDestinationSelected: (index) {
-          setState(() => _currentIndex = index);
+          ref.read(dashboardTabProvider.notifier).state = index;
         },
         destinations: const [
           NavigationDestination(
@@ -110,25 +113,9 @@ class _HomeTab extends ConsumerWidget {
       todayScore = 5;
     }
     
-    Color moodColor = MockDataService.moodColor(todayScore);
-
     return Stack(
       children: [
-        // Full Page Weather Background
-        Positioned.fill(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  moodColor.withValues(alpha: 0.2),
-                  theme.colorScheme.surface,
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-          ),
-        ),
+        // Full Page Weather Background with immersive gradients
         Positioned.fill(
           child: _WeatherAnimationBackground(score: todayScore),
         ),
@@ -540,77 +527,157 @@ class _WeatherAnimationBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Determine the atmospheric gradient based on the weather/mood score
+    List<Color> gradientColors;
     if (score == 1) {
-      // Rain
-      return Stack(
-        children: List.generate(10, (index) {
+      gradientColors = [const Color(0xFF2C3E50), const Color(0xFF34495E), const Color(0xFF5D6D7E)]; // Stormy Dark
+    } else if (score == 2) {
+      gradientColors = [const Color(0xFF7F8C8D), const Color(0xFF95A5A6), const Color(0xFFBDC3C7)]; // Gloomy Grey
+    } else if (score == 3) {
+      gradientColors = [const Color(0xFF85C1E9), const Color(0xFFD6EAF8), const Color(0xFFFDFEFE)]; // Soft Sky Blue
+    } else if (score == 4) {
+      gradientColors = [const Color(0xFF3498DB), const Color(0xFF85C1E9), const Color(0xFFFAD7A1)]; // Bright Day
+    } else {
+      gradientColors = [const Color(0xFFF39C12), const Color(0xFFF1C40F), const Color(0xFFFAD7A1)]; // Vibrant Sunset/Golden Hour
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+      child: ClipRect(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return Stack(
+              children: _buildWeatherParticles(score, constraints),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildWeatherParticles(int score, BoxConstraints constraints) {
+    if (score == 1) {
+      // Heavy Rain + Sliding Drops on Glass
+      final random = Random(42);
+      return List.generate(40, (index) {
+        final startX = random.nextDouble() * constraints.maxWidth;
+        final isSliding = index % 3 == 0; // Some drops stick and slide slowly
+        final size = isSliding ? (16.0 + random.nextDouble() * 12.0) : (10.0 + random.nextDouble() * 8.0);
+        final duration = isSliding ? (4000 + random.nextInt(3000)) : (400 + random.nextInt(400));
+        final delayMs = random.nextInt(4000);
+        
+        // Use a slide ratio to move exactly from top to bottom
+        final slideRatio = constraints.maxHeight / size + 2;
+
+        return Positioned(
+          left: startX,
+          top: -40, // start above the screen
+          child: Icon(Icons.water_drop, color: Colors.blue.shade200.withValues(alpha: isSliding ? 0.5 : 0.3), size: size)
+              .animate(onPlay: (controller) => controller.repeat(), delay: delayMs.ms)
+              .slideY(begin: 0, end: slideRatio, duration: duration.ms, curve: isSliding ? Curves.easeInOutSine : Curves.linear)
+              .fadeIn(duration: 200.ms)
+              .fadeOut(delay: (duration * 0.8).toInt().ms),
+        );
+      });
+    } else if (score == 2) {
+      // Cloudy / Overcast
+      return [
+        Positioned(
+          right: -50,
+          top: -20,
+          child: Icon(Icons.cloud, color: Colors.white.withValues(alpha: 0.3), size: 180)
+              .animate(onPlay: (controller) => controller.repeat(reverse: true))
+              .slideX(begin: 0, end: -0.15, duration: 6.seconds),
+        ),
+        Positioned(
+          left: -60,
+          top: 60,
+          child: Icon(Icons.cloud, color: Colors.grey.shade400.withValues(alpha: 0.3), size: 140)
+              .animate(onPlay: (controller) => controller.repeat(reverse: true))
+              .slideX(begin: 0, end: 0.1, duration: 8.seconds),
+        ),
+        Positioned(
+          right: 20,
+          top: 150,
+          child: Icon(Icons.cloud, color: Colors.white.withValues(alpha: 0.2), size: 100)
+              .animate(onPlay: (controller) => controller.repeat(reverse: true))
+              .slideX(begin: 0, end: -0.2, duration: 10.seconds),
+        ),
+      ];
+    } else if (score == 4) {
+      // Sunny
+      return [
+        Positioned(
+          right: -40,
+          top: -40,
+          child: Icon(Icons.wb_sunny, color: Colors.yellow.shade100.withValues(alpha: 0.5), size: 220)
+              .animate(onPlay: (controller) => controller.repeat())
+              .rotate(duration: 30.seconds),
+        ),
+        Positioned(
+          left: -20,
+          top: 40,
+          child: Icon(Icons.cloud, color: Colors.white.withValues(alpha: 0.6), size: 120)
+              .animate(onPlay: (controller) => controller.repeat(reverse: true))
+              .slideX(begin: 0, end: 0.1, duration: 12.seconds),
+        ),
+      ];
+    } else if (score == 5) {
+      // Glowing / Golden Hour / Sparkles
+      return [
+        Positioned(
+          right: -60,
+          top: -60,
+          child: Container(
+            width: 250,
+            height: 250,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.4),
+                  blurRadius: 60,
+                  spreadRadius: 40,
+                ),
+              ],
+            ),
+          ).animate(onPlay: (controller) => controller.repeat(reverse: true)).scaleXY(begin: 0.9, end: 1.1, duration: 3.seconds),
+        ),
+        ...List.generate(6, (index) {
           return Positioned(
-            left: 10.0 + (index * 35),
-            top: -20,
-            child: Icon(Icons.water_drop, color: Colors.blueAccent.withValues(alpha: 0.4), size: 20)
-                .animate(onPlay: (controller) => controller.repeat())
-                .slideY(begin: 0, end: 15, duration: (800 + (index * 200)).ms)
-                .fadeIn(duration: 200.ms)
-                .fadeOut(delay: 600.ms),
+            left: 30.0 + (index * 50),
+            top: 40.0 + (index % 3 * 60),
+            child: Icon(Icons.star_rounded, color: Colors.white.withValues(alpha: 0.6), size: 24)
+                .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                .scaleXY(begin: 0.5, end: 1.5, duration: (800 + (index * 300)).ms)
+                .fadeIn(duration: 400.ms),
           );
         }),
-      );
-    } else if (score == 2) {
-      // Cloudy / Drizzle
-      return Stack(
-        children: [
-          Positioned(
-            right: -20,
-            top: -20,
-            child: Icon(Icons.cloud, color: Colors.grey.withValues(alpha: 0.4), size: 140)
-                .animate(onPlay: (controller) => controller.repeat(reverse: true))
-                .slideX(begin: 0, end: -0.1, duration: 4.seconds),
-          ),
-          Positioned(
-            left: -40,
-            bottom: -20,
-            child: Icon(Icons.cloud, color: Colors.blueGrey.withValues(alpha: 0.2), size: 100)
-                .animate(onPlay: (controller) => controller.repeat(reverse: true))
-                .slideX(begin: 0, end: 0.15, duration: 5.seconds),
-          ),
-        ],
-      );
-    } else if (score == 4 || score == 5) {
-      // Sunny / Sparkles
-      return Stack(
-        children: [
-          Positioned(
-            right: -40,
-            top: -40,
-            child: Icon(score == 5 ? Icons.star_rounded : Icons.wb_sunny, color: Colors.amber.withValues(alpha: 0.3), size: 180)
-                .animate(onPlay: (controller) => controller.repeat())
-                .rotate(duration: 15.seconds),
-          ),
-          if (score == 5) ...List.generate(3, (index) {
-            return Positioned(
-              left: 20.0 + (index * 60),
-              bottom: 20.0 + (index * 30),
-              child: Icon(Icons.star_border_rounded, color: Colors.amber.withValues(alpha: 0.4), size: 30)
-                  .animate(onPlay: (controller) => controller.repeat(reverse: true))
-                  .scaleXY(begin: 0.8, end: 1.2, duration: (600 + (index * 200)).ms)
-                  .fadeIn(),
-            );
-          }),
-        ],
-      );
+      ];
     } else {
-      // Normal Clouds
-      return Stack(
-        children: [
-          Positioned(
-            left: -20,
-            top: 20,
-            child: Icon(Icons.cloud, color: Colors.lightBlue.withValues(alpha: 0.2), size: 120)
-                .animate(onPlay: (controller) => controller.repeat(reverse: true))
-                .slideX(begin: 0, end: 0.15, duration: 6.seconds),
-          ),
-        ],
-      );
+      // Normal (Score 3) - Few gentle clouds
+      return [
+        Positioned(
+          left: -40,
+          top: 30,
+          child: Icon(Icons.cloud, color: Colors.white.withValues(alpha: 0.7), size: 150)
+              .animate(onPlay: (controller) => controller.repeat(reverse: true))
+              .slideX(begin: 0, end: 0.15, duration: 9.seconds),
+        ),
+        Positioned(
+          right: -30,
+          top: 120,
+          child: Icon(Icons.cloud, color: Colors.white.withValues(alpha: 0.5), size: 100)
+              .animate(onPlay: (controller) => controller.repeat(reverse: true))
+              .slideX(begin: 0, end: -0.1, duration: 14.seconds),
+        ),
+      ];
     }
   }
 }
@@ -834,7 +901,9 @@ class _TrendSummaryCard extends ConsumerWidget {
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(24),
-          onTap: () => context.push('/history'),
+          onTap: () {
+            ref.read(dashboardTabProvider.notifier).state = 4;
+          },
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Row(
@@ -1184,8 +1253,9 @@ class _QuickActionChip extends StatelessWidget {
     final theme = Theme.of(context);
     return Expanded(
       child: Material(
-        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+        color: theme.colorScheme.primary, // Solid high-contrast background
         borderRadius: BorderRadius.circular(16),
+        elevation: 2, // Add slight shadow to make it pop
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
@@ -1194,12 +1264,13 @@ class _QuickActionChip extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 20, color: theme.colorScheme.primary),
+                Icon(icon, size: 20, color: theme.colorScheme.onPrimary),
                 const SizedBox(width: 8),
                 Text(
                   label,
                   style: theme.textTheme.labelLarge?.copyWith(
-                    color: theme.colorScheme.primary,
+                    color: theme.colorScheme.onPrimary,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],

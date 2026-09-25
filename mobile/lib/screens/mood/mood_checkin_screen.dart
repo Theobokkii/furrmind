@@ -58,7 +58,13 @@ class _MoodCheckInScreenState extends ConsumerState<MoodCheckInScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.close),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/dashboard');
+            }
+          },
         ),
         elevation: 0,
         backgroundColor: Colors.transparent,

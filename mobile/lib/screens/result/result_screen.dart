@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/journal_storage.dart';
 import '../../widgets/distortion_card.dart';
@@ -33,8 +34,21 @@ class ResultScreen extends ConsumerWidget {
         title: const Text('Analysis Results'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/dashboard');
+            }
+          },
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.home_outlined),
+            tooltip: 'Home',
+            onPressed: () => context.go('/dashboard'),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -169,7 +183,7 @@ class ResultScreen extends ConsumerWidget {
                                 content: Text('Entry saved! 📝'),
                               ),
                             );
-                            Navigator.of(context).pop();
+                            context.go('/dashboard');
                           }
                         },
                         icon: const Icon(Icons.save_outlined),
@@ -224,7 +238,7 @@ class ResultScreen extends ConsumerWidget {
                             content: Text('Entry saved! ✅'),
                           ),
                         );
-                        Navigator.of(context).pop();
+                        context.go('/dashboard');
                       }
                     },
                     icon: const Icon(Icons.save_outlined),

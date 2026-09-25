@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/models/distortion_result.dart';
 import '../../core/services/api_service.dart';
@@ -87,7 +88,7 @@ class _ReframeScreenState extends ConsumerState<ReframeScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Session saved successfully! ✨')),
       );
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      context.go('/dashboard');
     }
   }
   @override
@@ -95,7 +96,16 @@ class _ReframeScreenState extends ConsumerState<ReframeScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     return Scaffold(
-      appBar: AppBar(title: const Text('✨ CBT Reframe')),
+      appBar: AppBar(
+        title: const Text('✨ CBT Reframe'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.home_outlined),
+            tooltip: 'Home',
+            onPressed: () => context.go('/dashboard'),
+          ),
+        ],
+      ),
       body: _isLoading
           ? const Padding(
               padding: EdgeInsets.all(16.0),

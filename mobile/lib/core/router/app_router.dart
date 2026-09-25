@@ -21,6 +21,10 @@ final appRouter = GoRouter(
   initialLocation: '/splash',
   routes: [
     GoRoute(
+      path: '/',
+      redirect: (context, state) => '/dashboard',
+    ),
+    GoRoute(
       path: '/splash',
       builder: (context, state) => const SplashScreen(),
     ),
@@ -65,8 +69,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/mood-result',
       builder: (context, state) {
-        final emotion = state.extra as EmotionDefinition;
-        return MoodResultScreen(primaryEmotion: emotion);
+        final emotion = state.extra as EmotionDefinition?;
+        return MoodResultScreen(
+          primaryEmotion: emotion ?? kBasicEmotions.first,
+        );
       },
     ),
   ],

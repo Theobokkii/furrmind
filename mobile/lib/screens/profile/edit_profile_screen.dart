@@ -65,7 +65,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile updated! ✨')),
       );
-      context.pop();
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/dashboard');
+      }
     }
   }
 
@@ -76,6 +80,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/dashboard');
+            }
+          },
+        ),
         title: const Text('Edit Profile'),
         actions: [
           TextButton(
@@ -357,7 +371,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
-                        value: ['he/him', 'she/her', 'they/them', 'others (ask)'].contains(_pronounsController.text)
+                        initialValue: ['he/him', 'she/her', 'they/them', 'others (ask)'].contains(_pronounsController.text)
                             ? _pronounsController.text
                             : (_pronounsController.text.isNotEmpty ? 'others (ask)' : null),
                         decoration: InputDecoration(

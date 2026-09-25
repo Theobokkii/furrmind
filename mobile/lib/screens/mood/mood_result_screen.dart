@@ -33,7 +33,7 @@ class MoodResultScreen extends ConsumerWidget {
                 alignment: Alignment.topRight,
                 child: IconButton(
                   icon: const Icon(Icons.close),
-                  onPressed: () => context.go('/'),
+                  onPressed: () => context.go('/dashboard'),
                 ),
               ),
               const Spacer(),
@@ -147,7 +147,7 @@ class MoodResultScreen extends ConsumerWidget {
               SizedBox(
                 height: 56,
                 child: FilledButton(
-                  onPressed: () => context.go('/'),
+                  onPressed: () => context.go('/dashboard'),
                   style: FilledButton.styleFrom(
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
