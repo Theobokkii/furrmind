@@ -9,6 +9,8 @@ class UserProfile extends HiveObject {
   String pronouns;
   String bio;
   List<String> friendIds;
+  List<String> pendingFriendRequests;
+  List<String> sentFriendRequests;
   String bannerUrl;
   String activeTheme;
   UserProfile({
@@ -21,6 +23,8 @@ class UserProfile extends HiveObject {
     this.pronouns = '',
     this.bio = '',
     this.friendIds = const [],
+    this.pendingFriendRequests = const [],
+    this.sentFriendRequests = const [],
     this.bannerUrl = 'default',
     this.activeTheme = 'default',
   });
@@ -47,13 +51,19 @@ class UserProfileAdapter extends TypeAdapter<UserProfile> {
       pronouns: fields[5] as String? ?? '',
       bio: fields[6] as String? ?? '',
       friendIds: (fields[7] as List?)?.cast<String>() ?? [],
+      pendingFriendRequests: (fields[11] as List?)?.cast<String>() ?? [],
+      sentFriendRequests: (fields[12] as List?)?.cast<String>() ?? [],
       bannerUrl: fields[8] as String? ?? 'default',
       activeTheme: fields[9] as String? ?? 'default',
     );
   }
   @override
   void write(BinaryWriter writer, UserProfile obj) {
+    writer.writeByte(13);
+    writer.writeByte(12);
+    writer.write(obj.sentFriendRequests);
     writer.writeByte(11);
+    writer.write(obj.pendingFriendRequests);
     writer.writeByte(10);
     writer.write(obj.name);
     writer.writeByte(0);

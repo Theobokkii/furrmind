@@ -8,6 +8,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/models/journal_entry.dart';
 import '../../core/models/mood_entry.dart';
 import '../../core/services/journal_storage.dart';
@@ -2326,6 +2327,18 @@ class _ProfileTab extends ConsumerWidget {
                       );
                     },
                   ),
+                  const SizedBox(height: 24),
+                  _ProfileMenuItem(
+                    icon: Icons.logout_rounded,
+                    title: 'Logout',
+                    textColor: Colors.red,
+                    onTap: () async {
+                      await FirebaseAuth.instance.signOut();
+                      if (context.mounted) {
+                        context.go('/');
+                      }
+                    },
+                  ),
                   const SizedBox(height: 80),
                 ]),
               ),
@@ -2373,20 +2386,23 @@ class _ProfileMenuItem extends StatelessWidget {
   final String title;
   final String? subtitle;
   final VoidCallback onTap;
+  final Color? textColor;
   const _ProfileMenuItem({
     required this.icon,
     required this.title,
     this.subtitle,
     required this.onTap,
+    this.textColor,
   });
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final color = textColor ?? theme.colorScheme.primary;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: Icon(icon, color: theme.colorScheme.primary),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        leading: Icon(icon, color: color),
+        title: Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
         subtitle: subtitle != null ? Text(subtitle!, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)) : null,
         trailing: Icon(Icons.chevron_right_rounded, color: theme.colorScheme.onSurfaceVariant),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

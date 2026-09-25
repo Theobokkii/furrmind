@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user_profile.dart';
 import '../models/journal_entry.dart';
 import '../models/mood_entry.dart';
+import 'auth_service.dart';
 
 final firestoreServiceProvider = Provider<FirestoreService>((ref) {
+  ref.watch(authStateChangesProvider);
   return FirestoreService(FirebaseFirestore.instance, FirebaseAuth.instance);
 });
 
@@ -31,6 +33,8 @@ class FirestoreService {
       'pronouns': profile.pronouns,
       'bio': profile.bio,
       'friendIds': profile.friendIds,
+      'pendingFriendRequests': profile.pendingFriendRequests,
+      'sentFriendRequests': profile.sentFriendRequests,
       'bannerUrl': profile.bannerUrl,
       'activeTheme': profile.activeTheme,
     });
@@ -47,6 +51,8 @@ class FirestoreService {
       pronouns: data['pronouns'] ?? '',
       bio: data['bio'] ?? '',
       friendIds: List<String>.from(data['friendIds'] ?? []),
+      pendingFriendRequests: List<String>.from(data['pendingFriendRequests'] ?? []),
+      sentFriendRequests: List<String>.from(data['sentFriendRequests'] ?? []),
       bannerUrl: data['bannerUrl'] ?? 'default',
       activeTheme: data['activeTheme'] ?? 'default',
     );
@@ -63,6 +69,94 @@ class FirestoreService {
     return _firestore.collection('users').doc(currentUserId).snapshots().map((doc) {
       if (!doc.exists) return null;
       return _mapToUserProfile(doc.data()!);
+    });
+  }
+
+  // --- FRIEND REQUESTS ---
+  Future<void> sendFriendRequest(String targetUsername) async {
+    if (currentUserId == null) return;
+    final currentUser = await getUserProfile(currentUserId!);
+    if (currentUser == null) return;
+    
+    final targetSnapshot = await _firestore.collection('users').where('username', isEqualTo: targetUsername).limit(1).get();
+    if (targetSnapshot.docs.isEmpty) return;
+    
+    await targetSnapshot.docs.first.reference.update({
+      'pendingFriendRequests': FieldValue.arrayUnion([currentUser.username])
+    });
+    
+    await _firestore.collection('users').doc(currentUserId).update({
+      'sentFriendRequests': FieldValue.arrayUnion([targetUsername])
+    });
+  }
+
+  Future<void> acceptFriendRequest(String requesterUsername) async {
+    if (currentUserId == null) return;
+    final currentUser = await getUserProfile(currentUserId!);
+    if (currentUser == null) return;
+    
+    final targetSnapshot = await _firestore.collection('users').where('username', isEqualTo: requesterUsername).limit(1).get();
+    if (targetSnapshot.docs.isNotEmpty) {
+      await targetSnapshot.docs.first.reference.update({
+        'sentFriendRequests': FieldValue.arrayRemove([currentUser.username]),
+        'friendIds': FieldValue.arrayUnion([currentUser.username])
+      });
+    }
+    
+    await _firestore.collection('users').doc(currentUserId).update({
+      'pendingFriendRequests': FieldValue.arrayRemove([requesterUsername]),
+      'friendIds': FieldValue.arrayUnion([requesterUsername])
+    });
+  }
+
+  Future<void> declineFriendRequest(String requesterUsername) async {
+    if (currentUserId == null) return;
+    final currentUser = await getUserProfile(currentUserId!);
+    if (currentUser == null) return;
+    
+    final targetSnapshot = await _firestore.collection('users').where('username', isEqualTo: requesterUsername).limit(1).get();
+    if (targetSnapshot.docs.isNotEmpty) {
+      await targetSnapshot.docs.first.reference.update({
+        'sentFriendRequests': FieldValue.arrayRemove([currentUser.username]),
+      });
+    }
+    
+    await _firestore.collection('users').doc(currentUserId).update({
+      'pendingFriendRequests': FieldValue.arrayRemove([requesterUsername]),
+    });
+  }
+
+  Future<void> cancelFriendRequest(String targetUsername) async {
+    if (currentUserId == null) return;
+    final currentUser = await getUserProfile(currentUserId!);
+    if (currentUser == null) return;
+    
+    final targetSnapshot = await _firestore.collection('users').where('username', isEqualTo: targetUsername).limit(1).get();
+    if (targetSnapshot.docs.isNotEmpty) {
+      await targetSnapshot.docs.first.reference.update({
+        'pendingFriendRequests': FieldValue.arrayRemove([currentUser.username]),
+      });
+    }
+    
+    await _firestore.collection('users').doc(currentUserId).update({
+      'sentFriendRequests': FieldValue.arrayRemove([targetUsername]),
+    });
+  }
+
+  Future<void> removeFriend(String friendUsername) async {
+    if (currentUserId == null) return;
+    final currentUser = await getUserProfile(currentUserId!);
+    if (currentUser == null) return;
+    
+    final targetSnapshot = await _firestore.collection('users').where('username', isEqualTo: friendUsername).limit(1).get();
+    if (targetSnapshot.docs.isNotEmpty) {
+      await targetSnapshot.docs.first.reference.update({
+        'friendIds': FieldValue.arrayRemove([currentUser.username]),
+      });
+    }
+    
+    await _firestore.collection('users').doc(currentUserId).update({
+      'friendIds': FieldValue.arrayRemove([friendUsername]),
     });
   }
 

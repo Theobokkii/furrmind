@@ -1,7 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/models/user_profile.dart';
+import '../../core/services/firestore_service.dart';
+import '../../core/services/gamification_service.dart';
 
+final friendProfileProvider = FutureProvider.family<UserProfile?, String>((ref, username) async {
+  final firestore = ref.watch(firestoreServiceProvider);
+  final results = await firestore.searchUsersByUsername(username);
+  if (results.isEmpty) return null;
+  try {
+    return results.firstWhere((u) => u.username == username);
+  } catch (e) {
+    return null;
+  }
+});
 
 // Helper for displaying emoji or image avatars (reusing logic)
 ImageProvider? getBannerImageProvider(String id) {
@@ -21,8 +35,8 @@ Widget buildAvatar(String id, {double fontSize = 40}) {
   return Text(id.isEmpty ? '🐾' : id, style: TextStyle(fontSize: fontSize));
 }
 
-class FriendProfileScreen extends StatelessWidget {
-  final String friendName;
+class FriendProfileScreen extends ConsumerWidget {
+  final String friendName; // This is actually the username
   
   const FriendProfileScreen({super.key, required this.friendName});
 
@@ -38,30 +52,10 @@ class FriendProfileScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    
-    // Mock data for the friend based on name
-    final List<Map<String, dynamic>> mockDiscoverList = [
-      {'name': 'Jordan_99', 'avatar': 'https://picsum.photos/seed/jordan/150', 'level': 5, 'pronouns': 'he/him', 'bio': 'Loves cats and coding.', 'banner': 'ocean', 'badges': ['Early Adopter']},
-      {'name': 'AlexTheGreat', 'avatar': 'https://picsum.photos/seed/alex/150', 'level': 8, 'pronouns': 'they/them', 'bio': 'Just exploring mindfulness.', 'banner': 'sunset', 'badges': ['Zen Master']},
-      {'name': 'TaylorSwift123', 'avatar': '👩🏼', 'level': 12, 'pronouns': 'she/her', 'bio': 'Singing my feelings away 🎵', 'banner': 'neon_glow', 'badges': ['Superstar', 'Helper']},
-      {'name': 'Casey_Jones', 'avatar': 'https://picsum.photos/seed/casey/150', 'level': 3, 'pronouns': 'he/they', 'bio': 'New here, saying hi!', 'banner': 'default', 'badges': []},
-      {'name': 'SammyBoy', 'avatar': '🐶', 'level': 2, 'pronouns': 'he/him', 'bio': 'A dog person in a cat app?', 'banner': 'halloween', 'badges': ['Curious']},
-      {'name': 'Riley_R', 'avatar': 'https://picsum.photos/seed/riley/150', 'level': 6, 'pronouns': 'she/they', 'bio': 'Tracking moods and taking names.', 'banner': 'christmas', 'badges': ['Consistent']},
-    ];
-
-    final mockDetails = mockDiscoverList.firstWhere(
-      (u) => u['name'] == friendName, 
-      orElse: () => {'name': friendName, 'avatar': '🐾', 'level': 1, 'pronouns': '', 'bio': 'This user loves privacy.', 'banner': 'default', 'badges': <String>[]}
-    );
-
-    final avatar = mockDetails['avatar'] as String;
-    final level = mockDetails['level'] as int;
-    final pronouns = mockDetails['pronouns'] as String;
-    final bio = mockDetails['bio'] as String;
-    final banner = mockDetails['banner'] as String;
-    final badges = (mockDetails['badges'] as List).cast<String>();
+    final profileAsync = ref.watch(friendProfileProvider(friendName));
+    final currentUserProfileAsync = ref.watch(userProfileProvider);
     
     return Scaffold(
       appBar: AppBar(
@@ -78,26 +72,31 @@ class FriendProfileScreen extends StatelessWidget {
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: theme.cardColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: theme.colorScheme.outlineVariant,
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    )
-                  ],
-                ),
+        child: profileAsync.when(
+          data: (profile) {
+            if (profile == null) {
+              return const Center(child: Text('User not found'));
+            }
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: theme.cardColor,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: theme.colorScheme.outlineVariant,
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        )
+                      ],
+                    ),
                 child: Column(
                   children: [
                     Stack(
@@ -109,17 +108,17 @@ class FriendProfileScreen extends StatelessWidget {
                           width: double.infinity,
                           decoration: BoxDecoration(
                             borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                            image: getBannerImageProvider(banner) != null 
+                            image: getBannerImageProvider(profile.bannerUrl) != null 
                                 ? DecorationImage(
-                                    image: getBannerImageProvider(banner)!,
+                                    image: getBannerImageProvider(profile.bannerUrl)!,
                                     fit: BoxFit.cover,
                                   )
                                 : null,
-                            gradient: getBannerImageProvider(banner) == null 
+                            gradient: getBannerImageProvider(profile.bannerUrl) == null 
                                 ? LinearGradient(
                                     colors: [
-                                      _getBannerColor(banner, theme).withValues(alpha: 0.5),
-                                      _getBannerColor(banner, theme).withValues(alpha: 0.2),
+                                      _getBannerColor(profile.bannerUrl, theme).withValues(alpha: 0.5),
+                                      _getBannerColor(profile.bannerUrl, theme).withValues(alpha: 0.2),
                                     ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
@@ -138,53 +137,72 @@ class FriendProfileScreen extends StatelessWidget {
                             child: CircleAvatar(
                               radius: 46,
                               backgroundColor: theme.colorScheme.primaryContainer,
-                              backgroundImage: getAvatarImageProvider(avatar),
-                              child: buildAvatar(avatar, fontSize: 40),
+                              backgroundImage: getAvatarImageProvider(profile.avatarEmoji),
+                              child: buildAvatar(profile.avatarEmoji, fontSize: 40),
                             ),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 52),
-                    RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: friendName,
-                            style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          if (pronouns.isNotEmpty)
-                            TextSpan(
-                              text: ' ($pronouns)',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: theme.colorScheme.primary,
-                                fontWeight: FontWeight.normal,
-                              ),
+                    Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              profile.name,
+                              style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                             ),
-                        ],
-                      ),
-                    ),
-                    if (bio.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 32),
-                        child: Text(
-                          bio,
-                          textAlign: TextAlign.center,
+                            if (profile.pronouns.isNotEmpty) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primaryContainer,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  profile.pronouns,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.onPrimaryContainer,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '@${profile.username}',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
-                            height: 1.4,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 12),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 32),
+                          child: Text(
+                            profile.bio.isNotEmpty ? profile.bio : "This user hasn't written a bio yet.",
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         _BadgeChip(
                           icon: Icons.star_rounded,
-                          label: 'Level $level',
+                          label: 'Level ${profile.currentLevel}',
                           color: Colors.amber,
                         ),
                       ],
@@ -195,7 +213,7 @@ class FriendProfileScreen extends StatelessWidget {
               ).animate().fadeIn(duration: 400.ms),
               const SizedBox(height: 24),
               
-              if (badges.isNotEmpty) ...[
+              if (profile.unlockedBadges.isNotEmpty) ...[
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
@@ -209,7 +227,7 @@ class FriendProfileScreen extends StatelessWidget {
                   child: Wrap(
                     spacing: 12,
                     runSpacing: 12,
-                    children: badges.map((badge) => Container(
+                    children: profile.unlockedBadges.map((badge) => Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.5),
@@ -230,39 +248,154 @@ class FriendProfileScreen extends StatelessWidget {
               ],
               
               const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    context.push('/friend-chat', extra: friendName);
-                  },
-                  icon: const Icon(Icons.chat_bubble_rounded),
-                  label: const Text('Send Message'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: TextButton.icon(
-                  onPressed: () {
-                    // Logic to remove friend could go here
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Unfriended $friendName')),
+              
+              currentUserProfileAsync.when(
+                data: (currentUser) {
+                  if (currentUser.username == friendName) {
+                    return const SizedBox.shrink(); // own profile
+                  }
+                  
+                  final isFriend = currentUser.friendIds.contains(friendName);
+                  final isPendingIncoming = currentUser.pendingFriendRequests.contains(friendName);
+                  final isPendingOutgoing = currentUser.sentFriendRequests.contains(friendName);
+                  final firestore = ref.read(firestoreServiceProvider);
+
+                  if (isFriend) {
+                    return Column(
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              context.push('/friend-chat', extra: friendName);
+                            },
+                            icon: const Icon(Icons.chat_bubble_rounded),
+                            label: const Text('Send Message'),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextButton.icon(
+                            onPressed: () async {
+                              await firestore.removeFriend(friendName);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Unfriended $friendName')),
+                                );
+                                context.pop();
+                              }
+                            },
+                            icon: Icon(Icons.person_remove_rounded, color: theme.colorScheme.error),
+                            label: Text('Remove Friend', style: TextStyle(color: theme.colorScheme.error)),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                          ),
+                        ),
+                      ],
                     );
-                    context.pop();
-                  },
-                  icon: Icon(Icons.person_remove_rounded, color: theme.colorScheme.error),
-                  label: Text('Remove Friend', style: TextStyle(color: theme.colorScheme.error)),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                ),
+                  }
+                  
+                  if (isPendingIncoming) {
+                    return Column(
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              await firestore.acceptFriendRequest(friendName);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('You are now friends with $friendName!')),
+                                );
+                              }
+                            },
+                            icon: const Icon(Icons.check_circle_rounded),
+                            label: const Text('Accept Request'),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextButton.icon(
+                            onPressed: () async {
+                              await firestore.declineFriendRequest(friendName);
+                              if (context.mounted) {
+                                context.pop();
+                              }
+                            },
+                            icon: Icon(Icons.cancel_rounded, color: theme.colorScheme.error),
+                            label: Text('Decline Request', style: TextStyle(color: theme.colorScheme.error)),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+                  
+                  if (isPendingOutgoing) {
+                    return SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          await firestore.cancelFriendRequest(friendName);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Canceled request to $friendName')),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.cancel_schedule_send_rounded),
+                        label: const Text('Cancel Request'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: theme.colorScheme.errorContainer,
+                          foregroundColor: theme.colorScheme.onErrorContainer,
+                        ),
+                      ),
+                    );
+                  }
+                  
+                  // Not friends
+                  return SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        await firestore.sendFriendRequest(friendName);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Friend request sent to $friendName!')),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.person_add_rounded),
+                      label: const Text('Add Friend'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (_, __) => const SizedBox.shrink(),
               ),
             ],
           ),
+        );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, _) => Center(child: Text('Error: $err')),
         ),
       ),
     );
