@@ -124,11 +124,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
-                      _ThemeSelectorItem(themeId: 'default', title: 'Sage Cream (Default)', requiredLevel: 1, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'default'),
-                      _ThemeSelectorItem(themeId: 'bamboo', title: 'Matcha Bamboo', requiredLevel: 1, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'bamboo'),
-                      _ThemeSelectorItem(themeId: 'marigold', title: 'Marigold Olive', requiredLevel: 2, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'marigold'),
-                      _ThemeSelectorItem(themeId: 'coastal', title: 'Coastal Breeze', requiredLevel: 3, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'coastal'),
-                      _ThemeSelectorItem(themeId: 'twilight', title: 'Twilight Lavender', requiredLevel: 4, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'twilight'),
+                      _ThemeSelectorItem(themeId: 'default', title: 'Sage Default', requiredLevel: 1, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'default'),
+                      _ThemeSelectorItem(themeId: 'midnight', title: 'Midnight Indigo', requiredLevel: 1, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'midnight'),
+                      _ThemeSelectorItem(themeId: 'blossom', title: 'Cherry Blossom', requiredLevel: 2, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'blossom'),
+                      _ThemeSelectorItem(themeId: 'mint', title: 'Mint Apple', requiredLevel: 3, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'mint'),
+                      _ThemeSelectorItem(themeId: 'lavender', title: 'Lavender Dream', requiredLevel: 4, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'lavender'),
+                      _ThemeSelectorItem(themeId: 'crimson', title: 'Crimson Night', requiredLevel: 5, currentLevel: profile.currentLevel, activeTheme: activeTheme, onTap: () => ref.read(previewThemeProvider.notifier).state = 'crimson'),
                     ],
                   ),
                 ),
@@ -296,7 +297,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         
         // Define required levels
         final requirements = {
-          'default': 1, 'bamboo': 1, 'marigold': 2, 'coastal': 3, 'twilight': 4
+          'default': 1, 'midnight': 1, 'blossom': 2, 'mint': 3, 'lavender': 4, 'crimson': 5
         };
         final requiredLevel = requirements[previewThemeId] ?? 1;
 

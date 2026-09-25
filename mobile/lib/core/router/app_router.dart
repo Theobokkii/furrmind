@@ -9,6 +9,9 @@ import '../../screens/history/history_screen.dart';
 import '../../screens/settings/settings_screen.dart';
 import '../../screens/profile/edit_profile_screen.dart';
 import '../../screens/chat/friend_chat_screen.dart';
+import '../../screens/chat/cato_chat_screen.dart';
+import '../../screens/mood/mood_checkin_screen.dart';
+
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
@@ -47,6 +50,14 @@ final appRouter = GoRouter(
       builder: (context, state) => FriendChatScreen(
         friendName: state.extra as String? ?? 'Friend',
       ),
+    ),
+    GoRoute(
+      path: '/cato-chat',
+      builder: (context, state) => const CatoChatScreen(),
+    ),
+    GoRoute(
+      path: '/mood-checkin',
+      builder: (context, state) => const MoodCheckInScreen(),
     ),
   ],
   redirect: (context, state) async {

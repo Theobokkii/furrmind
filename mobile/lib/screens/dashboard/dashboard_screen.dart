@@ -10,6 +10,7 @@ import '../../core/services/mock_data_service.dart';
 import '../../core/services/gamification_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/image_helper.dart';
+import '../chat/cato_chat_screen.dart';
 import 'social_tab.dart';
 import 'leaderboard_tab.dart';
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -23,6 +24,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     final pages = [
       const _HomeTab(),
+      const CatoChatScreen(),
       const SocialTab(),
       const LeaderboardTab(),
       const _MoodTab(),
@@ -43,6 +45,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             icon: Icon(Icons.book_outlined),
             selectedIcon: Icon(Icons.book),
             label: 'Journal',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.chat_bubble_outline_rounded),
+            selectedIcon: Icon(Icons.chat_bubble_rounded),
+            label: 'Cato',
           ),
           NavigationDestination(
             icon: Icon(Icons.people_outline_rounded),
@@ -252,29 +259,6 @@ class _DailyMoodCheckIn extends ConsumerStatefulWidget {
   ConsumerState<_DailyMoodCheckIn> createState() => _DailyMoodCheckInState();
 }
 class _DailyMoodCheckInState extends ConsumerState<_DailyMoodCheckIn> {
-  int? _selectedMood;
-  bool _isSaving = false;
-  final _moods = [
-    {'emoji': '😢', 'score': 1},
-    {'emoji': '😟', 'score': 2},
-    {'emoji': '😐', 'score': 3},
-    {'emoji': '😊', 'score': 4},
-    {'emoji': '😄', 'score': 5},
-  ];
-  Future<void> _saveMood() async {
-    if (_selectedMood == null) return;
-    setState(() => _isSaving = true);
-    final gamification = ref.read(gamificationProvider);
-    await gamification.logMood(_selectedMood!);
-    ref.invalidate(todayMoodProvider);
-    ref.invalidate(weeklyMoodsProvider);
-    ref.invalidate(userProfileProvider);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Mood logged! +5 points 🌟')),
-      );
-    }
-  }
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -295,50 +279,27 @@ class _DailyMoodCheckInState extends ConsumerState<_DailyMoodCheckIn> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'How are you feeling today?',
+                'How are you feeling?',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: _moods.map((m) {
-                  final isSelected = _selectedMood == m['score'];
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() => _selectedMood = m['score'] as int);
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: isSelected ? theme.colorScheme.tertiary : Colors.transparent,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Text(
-                        m['emoji'] as String,
-                        style: TextStyle(fontSize: isSelected ? 32 : 28),
-                      ),
-                    ),
-                  );
-                }).toList(),
+              const SizedBox(height: 8),
+              Text(
+                'Take a moment to check in with yourself.',
+                style: theme.textTheme.bodyMedium,
               ),
-              if (_selectedMood != null) ...[
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: _isSaving ? null : _saveMood,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: theme.colorScheme.tertiary,
-                    ),
-                    child: _isSaving 
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Text('Log Mood'),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => context.push('/mood-checkin'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: theme.colorScheme.tertiary,
                   ),
-                ).animate().fadeIn(duration: 200.ms),
-              ]
+                  child: const Text('Check In'),
+                ),
+              ),
             ],
           ),
         ),

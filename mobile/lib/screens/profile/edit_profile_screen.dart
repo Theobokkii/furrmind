@@ -18,7 +18,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late TextEditingController _pronounsController;
   late TextEditingController _bioController;
   
-  String _avatarEmoji = '🐼';
+  String _avatarEmoji = '👤';
   String _bannerColorId = 'default';
 
   @override
@@ -214,7 +214,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       Wrap(
                         spacing: 12,
                         runSpacing: 12,
-                        children: ['🐼', '🐱', '🦊', '🐨', '🐰', '🐯', '🐶'].map((emoji) {
+                        children: ['👤', '🐼', '🐱', '🦊', '🐨', '🐰', '🐯', '🐶'].map((emoji) {
                           final isSelected = _avatarEmoji == emoji;
                           return GestureDetector(
                             onTap: () => setState(() => _avatarEmoji = emoji),
@@ -338,28 +338,77 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       TextField(
                         controller: _nameController,
                         onChanged: (_) => setState((){}),
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Display Name',
                           hintText: 'What should we call you?',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: theme.dividerColor),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: theme.dividerColor),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
-                      TextField(
-                        controller: _pronounsController,
-                        onChanged: (_) => setState((){}),
-                        decoration: const InputDecoration(
+                      DropdownButtonFormField<String>(
+                        value: ['he/him', 'she/her', 'they/them', 'others (ask)'].contains(_pronounsController.text)
+                            ? _pronounsController.text
+                            : (_pronounsController.text.isNotEmpty ? 'others (ask)' : null),
+                        decoration: InputDecoration(
                           labelText: 'Pronouns',
-                          hintText: 'e.g. they/them',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: theme.dividerColor),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: theme.dividerColor),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
+                          ),
                         ),
+                        items: const [
+                          DropdownMenuItem(value: 'he/him', child: Text('he/him')),
+                          DropdownMenuItem(value: 'she/her', child: Text('she/her')),
+                          DropdownMenuItem(value: 'they/them', child: Text('they/them')),
+                          DropdownMenuItem(value: 'others (ask)', child: Text('others (ask)')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              _pronounsController.text = val;
+                            });
+                          }
+                        },
                       ),
                       const SizedBox(height: 16),
                       TextField(
                         controller: _bioController,
                         onChanged: (_) => setState((){}),
                         maxLines: 3,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Bio',
                           hintText: 'A little bit about yourself...',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: theme.dividerColor),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: theme.dividerColor),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
+                          ),
                         ),
                       ),
                     ],

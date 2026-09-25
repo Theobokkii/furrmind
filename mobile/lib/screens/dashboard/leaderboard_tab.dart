@@ -88,8 +88,13 @@ class LeaderboardTab extends ConsumerWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.info_outline_rounded, color: Colors.white),
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.info_outline_rounded, color: Colors.white, size: 16),
+                          label: const Text('Ranks', style: TextStyle(color: Colors.white)),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.white54),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                          ),
                           onPressed: () => _showRankLadder(context),
                         ),
                       ],

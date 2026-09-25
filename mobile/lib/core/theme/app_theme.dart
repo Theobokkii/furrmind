@@ -63,21 +63,25 @@ class AppColors {
       'light': [Color(0xFF7C9A7E), Color(0xFFD9A57E), Color(0xFFFAF7F2), Color(0xFFF2EDE4), Color(0xFF3D3229), Color(0xFF6B5D4F)],
       'dark': [Color(0xFF8BA68D), Color(0xFFE0B494), Color(0xFF1E1A17), Color(0xFF2C2621), Color(0xFFF2EDE4), Color(0xFFC4B8A8)],
     },
-    'bamboo': {
-      'light': [Color(0xFF86A789), Color(0xFF739072), Color(0xFFF5F7F3), Color(0xFFE9EFE6), Color(0xFF2A3D2A), Color(0xFF4A5C4A)],
-      'dark': [Color(0xFF4A5C4A), Color(0xFF86A789), Color(0xFF1B241B), Color(0xFF2A342A), Color(0xFFD2E3C6), Color(0xFF86A789)],
+    'midnight': {
+      'light': [Color(0xFF5865F2), Color(0xFFEB459E), Color(0xFFF2F3F5), Color(0xFFE3E5E8), Color(0xFF2E3338), Color(0xFF4F545C)],
+      'dark': [Color(0xFF5865F2), Color(0xFFEB459E), Color(0xFF0C0C0D), Color(0xFF1E1F22), Color(0xFFF2F3F5), Color(0xFFB5BAC1)],
     },
-    'marigold': {
-      'light': [Color(0xFF909C7B), Color(0xFFD5A760), Color(0xFFF8F9F4), Color(0xFFEBECE0), Color(0xFF2C3224), Color(0xFF686C5A)],
-      'dark': [Color(0xFFA5B38D), Color(0xFFE2B773), Color(0xFF1A1C16), Color(0xFF252720), Color(0xFFF8F9F4), Color(0xFF909C7B)],
+    'blossom': {
+      'light': [Color(0xFFE9969C), Color(0xFFF47B89), Color(0xFFFDF7F7), Color(0xFFFDE8EA), Color(0xFF4A3C3E), Color(0xFF867275)],
+      'dark': [Color(0xFFD47C83), Color(0xFFE86073), Color(0xFF2A1C1D), Color(0xFF3B2527), Color(0xFFFDF7F7), Color(0xFFC1B0B2)],
     },
-    'twilight': {
-      'light': [Color(0xFF978FAD), Color(0xFFD5B4B4), Color(0xFFF7F5FA), Color(0xFFEBE7F2), Color(0xFF322E3D), Color(0xFF6B6577)],
-      'dark': [Color(0xFFAFA9C1), Color(0xFFE0C1C1), Color(0xFF1C1A24), Color(0xFF262330), Color(0xFFF7F5FA), Color(0xFF978FAD)],
+    'mint': {
+      'light': [Color(0xFF62C2A6), Color(0xFF2D9C8A), Color(0xFFF4F9F8), Color(0xFFE3F3EF), Color(0xFF263C38), Color(0xFF5D7B75)],
+      'dark': [Color(0xFF53A68F), Color(0xFF247F70), Color(0xFF16211F), Color(0xFF20322E), Color(0xFFF4F9F8), Color(0xFF91B1A9)],
     },
-    'coastal': {
-      'light': [Color(0xFF7BA1A8), Color(0xFFDFBFA0), Color(0xFFF4F7F8), Color(0xFFE6EEF0), Color(0xFF26373A), Color(0xFF5D7175)],
-      'dark': [Color(0xFF8FB2B9), Color(0xFFE8CBAD), Color(0xFF161E1F), Color(0xFF202A2C), Color(0xFFF4F7F8), Color(0xFF7BA1A8)],
+    'lavender': {
+      'light': [Color(0xFF9993E1), Color(0xFF7F78CD), Color(0xFFF7F6FB), Color(0xFFEBE9F5), Color(0xFF2C2A3D), Color(0xFF635E7A)],
+      'dark': [Color(0xFF867EC2), Color(0xFF6B64AD), Color(0xFF1B1925), Color(0xFF262436), Color(0xFFF7F6FB), Color(0xFF9892B3)],
+    },
+    'crimson': {
+      'light': [Color(0xFFD15959), Color(0xFFAB4040), Color(0xFFFCF5F5), Color(0xFFF5E6E6), Color(0xFF3F2121), Color(0xFF845B5B)],
+      'dark': [Color(0xFFBA4A4A), Color(0xFF923030), Color(0xFF1F1111), Color(0xFF2E1A1A), Color(0xFFFCF5F5), Color(0xFFB59393)],
     },
   };
 }

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/services/gamification_service.dart';
 import '../../core/utils/image_helper.dart';
-import 'chat_tab.dart'; 
 import 'package:go_router/go_router.dart';
 class SocialTab extends ConsumerWidget {
   const SocialTab({super.key});
@@ -13,7 +12,7 @@ class SocialTab extends ConsumerWidget {
     final profileAsync = ref.watch(userProfileProvider);
     return SafeArea(
       child: DefaultTabController(
-        length: 3,
+        length: 2,
         child: Column(
           children: [
             Padding(
@@ -28,7 +27,6 @@ class SocialTab extends ConsumerWidget {
                 labelColor: theme.colorScheme.onPrimary,
                 unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
                 tabs: const [
-                  Tab(text: '🤖 AI Companion'),
                   Tab(text: '👥 My Friends'),
                   Tab(text: '🔍 Discover'),
                 ],
@@ -37,7 +35,6 @@ class SocialTab extends ConsumerWidget {
             Expanded(
               child: TabBarView(
                 children: [
-                  const ChatTab(),
                   profileAsync.when(
                     data: (profile) => _FriendsList(friendIds: profile.friendIds),
                     loading: () => const Center(child: CircularProgressIndicator()),
