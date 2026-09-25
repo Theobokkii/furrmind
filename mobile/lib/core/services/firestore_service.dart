@@ -53,6 +53,26 @@ class FirestoreService {
     );
   }
 
+  Stream<UserProfile?> getUserProfileStream() {
+    if (currentUserId == null) return Stream.value(null);
+    return _firestore.collection('users').doc(currentUserId).snapshots().map((doc) {
+      if (!doc.exists) return null;
+      final data = doc.data()!;
+      return UserProfile(
+        username: data['username'] ?? '',
+        avatarEmoji: data['avatarEmoji'] ?? '🐱',
+        totalPoints: data['totalPoints'] ?? 0,
+        currentLevel: data['currentLevel'] ?? 1,
+        unlockedBadges: List<String>.from(data['unlockedBadges'] ?? []),
+        pronouns: data['pronouns'] ?? '',
+        bio: data['bio'] ?? '',
+        friendIds: List<String>.from(data['friendIds'] ?? []),
+        bannerUrl: data['bannerUrl'] ?? 'default',
+        activeTheme: data['activeTheme'] ?? 'default',
+      );
+    });
+  }
+
   // --- JOURNAL ENTRIES ---
   Future<void> saveJournalEntry(JournalEntry entry) async {
     if (currentUserId == null) return;
@@ -74,6 +94,40 @@ class FirestoreService {
     });
   }
 
+  Stream<List<JournalEntry>> getJournalsStream() {
+    if (currentUserId == null) return Stream.value([]);
+    
+    return _firestore
+        .collection('users')
+        .doc(currentUserId)
+        .collection('journals')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) {
+              final data = doc.data();
+              return JournalEntry(
+                id: data['id'],
+                text: data['text'] ?? '',
+                distortionLabels: List<String>.from(data['distortionLabels'] ?? []),
+                distortionConfidences: List<double>.from(data['distortionConfidences']?.map((x) => (x as num).toDouble()) ?? []),
+                reframeText: data['reframeText'],
+                explanation: data['explanation'],
+                techniques: data['techniques'] != null ? List<String>.from(data['techniques']) : null,
+                createdAt: DateTime.parse(data['createdAt']),
+              );
+            }).toList());
+  }
+
+  Future<void> deleteJournalEntry(String id) async {
+    if (currentUserId == null) return;
+    await _firestore
+        .collection('users')
+        .doc(currentUserId)
+        .collection('journals')
+        .doc(id)
+        .delete();
+  }
+
   // --- MOOD ENTRIES ---
   Future<void> saveMoodEntry(MoodEntry entry) async {
     if (currentUserId == null) return;
@@ -88,6 +142,25 @@ class FirestoreService {
       'moodScore': entry.moodScore,
       'createdAt': entry.createdAt.toIso8601String(),
     });
+  }
+
+  Stream<List<MoodEntry>> getMoodsStream() {
+    if (currentUserId == null) return Stream.value([]);
+    
+    return _firestore
+        .collection('users')
+        .doc(currentUserId)
+        .collection('moods')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) {
+              final data = doc.data();
+              return MoodEntry(
+                id: data['id'],
+                moodScore: data['moodScore'] ?? 3,
+                createdAt: DateTime.parse(data['createdAt']),
+              );
+            }).toList());
   }
 
   // --- SEARCH FRIENDS ---

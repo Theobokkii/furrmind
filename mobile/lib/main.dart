@@ -9,7 +9,6 @@ import 'core/models/mood_entry.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
-import 'core/services/mock_data_service.dart';
 import 'core/services/gamification_service.dart';
 
 void main() async {
@@ -21,7 +20,6 @@ void main() async {
   Hive.registerAdapter(JournalEntryAdapter());
   Hive.registerAdapter(UserProfileAdapter());
   Hive.registerAdapter(MoodEntryAdapter());
-  await MockDataService.seedIfNeeded();
   runApp(
     const ProviderScope(
       child: FurrmindApp(),

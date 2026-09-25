@@ -1,35 +1,57 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+
 import '../models/user_profile.dart';
 import '../models/mood_entry.dart';
-final gamificationProvider = Provider((ref) => GamificationService());
-final userProfileProvider = FutureProvider((ref) => ref.watch(gamificationProvider).getProfile());
-final todayMoodProvider = FutureProvider((ref) => ref.watch(gamificationProvider).getTodayMood());
-final weeklyMoodsProvider = FutureProvider((ref) => ref.watch(gamificationProvider).getWeeklyMoods());
+import 'firestore_service.dart';
+
+final gamificationProvider = Provider((ref) => GamificationService(ref));
+
+final userProfileProvider = StreamProvider<UserProfile>((ref) {
+  final firestoreService = ref.watch(firestoreServiceProvider);
+  return firestoreService.getUserProfileStream().map((profile) => 
+    profile ?? UserProfile(username: 'Explorer', avatarEmoji: '👤')
+  );
+});
+
+final todayMoodProvider = StreamProvider<MoodEntry?>((ref) {
+  final firestoreService = ref.watch(firestoreServiceProvider);
+  return firestoreService.getMoodsStream().map((moods) {
+    final now = DateTime.now();
+    try {
+      return moods.firstWhere((e) => 
+        e.createdAt.year == now.year && 
+        e.createdAt.month == now.month && 
+        e.createdAt.day == now.day
+      );
+    } catch (_) {
+      return null;
+    }
+  });
+});
+
+final weeklyMoodsProvider = StreamProvider<List<MoodEntry>>((ref) {
+  final firestoreService = ref.watch(firestoreServiceProvider);
+  return firestoreService.getMoodsStream().map((moods) {
+    final weekAgo = DateTime.now().subtract(const Duration(days: 7));
+    final filtered = moods.where((e) => e.createdAt.isAfter(weekAgo)).toList();
+    filtered.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    return filtered;
+  });
+});
+
 class GamificationService {
-  static const String profileBoxName = 'user_profile_box';
-  static const String moodBoxName = 'mood_entries_box';
-  Future<Box<UserProfile>> _getProfileBox() async {
-    if (!Hive.isBoxOpen(profileBoxName)) {
-      return await Hive.openBox<UserProfile>(profileBoxName);
-    }
-    return Hive.box<UserProfile>(profileBoxName);
-  }
-  Future<Box<MoodEntry>> _getMoodBox() async {
-    if (!Hive.isBoxOpen(moodBoxName)) {
-      return await Hive.openBox<MoodEntry>(moodBoxName);
-    }
-    return Hive.box<MoodEntry>(moodBoxName);
-  }
+  final Ref _ref;
+  
+  GamificationService(this._ref);
+
   Future<UserProfile> getProfile() async {
-    final box = await _getProfileBox();
-    if (box.isEmpty) {
-      final profile = UserProfile(username: 'Explorer', avatarEmoji: '👤');
-      await box.put('current', profile);
-      return profile;
-    }
-    return box.get('current')!;
+    final firestoreService = _ref.read(firestoreServiceProvider);
+    final uid = firestoreService.currentUserId;
+    if (uid == null) return UserProfile(username: 'Explorer', avatarEmoji: '👤');
+    final profile = await firestoreService.getUserProfile(uid);
+    return profile ?? UserProfile(username: 'Explorer', avatarEmoji: '👤');
   }
+
   Future<void> updateProfile({
     String? username, 
     String? avatarEmoji,
@@ -39,8 +61,9 @@ class GamificationService {
     String? bannerUrl,
     String? activeTheme,
   }) async {
-    final box = await _getProfileBox();
+    final firestoreService = _ref.read(firestoreServiceProvider);
     final profile = await getProfile();
+    
     if (username != null) profile.username = username;
     if (avatarEmoji != null) profile.avatarEmoji = avatarEmoji;
     if (pronouns != null) profile.pronouns = pronouns;
@@ -48,8 +71,10 @@ class GamificationService {
     if (friendIds != null) profile.friendIds = friendIds;
     if (bannerUrl != null) profile.bannerUrl = bannerUrl;
     if (activeTheme != null) profile.activeTheme = activeTheme;
-    await box.put('current', profile);
+    
+    await firestoreService.saveUserProfile(profile);
   }
+
   int _calculateLevel(int points) {
     if (points < 50) return 1;
     if (points < 150) return 2;
@@ -57,14 +82,17 @@ class GamificationService {
     if (points < 500) return 4;
     return 5;
   }
+
   Future<void> addPoints(int points, {String? reason}) async {
-    final box = await _getProfileBox();
+    final firestoreService = _ref.read(firestoreServiceProvider);
     final profile = await getProfile();
+    
     profile.totalPoints += points;
     final newLevel = _calculateLevel(profile.totalPoints);
     if (newLevel > profile.currentLevel) {
       profile.currentLevel = newLevel;
     }
+    
     final badges = List<String>.from(profile.unlockedBadges);
     if (profile.totalPoints >= 10 && !badges.contains('First Step')) {
       badges.add('First Step');
@@ -73,33 +101,22 @@ class GamificationService {
       badges.add('Mindful Master');
     }
     profile.unlockedBadges = badges;
-    await box.put('current', profile);
+    
+    await firestoreService.saveUserProfile(profile);
   }
+
   Future<void> logMood(int score) async {
-    final box = await _getMoodBox();
+    final firestoreService = _ref.read(firestoreServiceProvider);
     final now = DateTime.now();
     final todayStr = '${now.year}-${now.month}-${now.day}';
+    
     final entry = MoodEntry(
       id: todayStr,
       moodScore: score,
       createdAt: now,
     );
-    await box.put(todayStr, entry);
+    
+    await firestoreService.saveMoodEntry(entry);
     await addPoints(5, reason: 'Daily Mood Tracking');
-  }
-  Future<MoodEntry?> getTodayMood() async {
-    final box = await _getMoodBox();
-    final now = DateTime.now();
-    final todayStr = '${now.year}-${now.month}-${now.day}';
-    return box.get(todayStr);
-  }
-  Future<List<MoodEntry>> getWeeklyMoods() async {
-    final box = await _getMoodBox();
-    final now = DateTime.now();
-    final weekAgo = now.subtract(const Duration(days: 7));
-    return box.values
-        .where((e) => e.createdAt.isAfter(weekAgo))
-        .toList()
-      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
   }
 }

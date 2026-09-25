@@ -11,7 +11,7 @@ import 'package:intl/intl.dart';
 import '../../core/models/journal_entry.dart';
 import '../../core/models/mood_entry.dart';
 import '../../core/services/journal_storage.dart';
-import '../../core/services/mock_data_service.dart';
+import '../../core/utils/mood_utils.dart';
 import '../../core/services/gamification_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/image_helper.dart';
@@ -133,6 +133,10 @@ class _HomeTab extends ConsumerWidget {
         Positioned.fill(
           child: _WeatherAnimationBackground(score: todayScore),
         ),
+        if (theme.brightness == Brightness.dark)
+          Positioned.fill(
+            child: ColoredBox(color: Colors.black.withValues(alpha: 0.5)),
+          ),
         // Content
         SafeArea(
           child: RefreshIndicator(
@@ -386,8 +390,8 @@ class _TodayMoodCard extends StatelessWidget {
       // Ignore fallback
     }
 
-    String emoji = MockDataService.moodEmoji(score);
-    Color color = MockDataService.moodColor(score);
+    String emoji = MoodUtils.moodEmoji(score);
+    Color color = MoodUtils.moodColor(score);
     String label = _getMoodLabel(score);
     Color textColor = Color.lerp(color, theme.brightness == Brightness.dark ? Colors.white : Colors.black, 0.5) ?? color;
 
@@ -1841,7 +1845,7 @@ class _MoodTabState extends ConsumerState<_MoodTab> {
                                           children: [
                                             if (_timeRange != 'This Month' && mood > 0)
                                               Text(
-                                                MockDataService.moodEmoji(mood),
+                                                MoodUtils.moodEmoji(mood),
                                                 style: const TextStyle(fontSize: 16),
                                               ),
                                             const SizedBox(height: 6),
@@ -1850,7 +1854,7 @@ class _MoodTabState extends ConsumerState<_MoodTab> {
                                               width: _timeRange == 'This Month' ? 8 : 24,
                                               height: barHeight,
                                               decoration: BoxDecoration(
-                                                color: mood > 0 ? MockDataService.moodColor(mood) : Colors.transparent,
+                                                color: mood > 0 ? MoodUtils.moodColor(mood) : Colors.transparent,
                                                 borderRadius: BorderRadius.circular(8),
                                               ),
                                             ),

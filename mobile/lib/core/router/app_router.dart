@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../screens/splash_screen.dart';
 import '../../screens/onboarding/onboarding_screen.dart';
 import '../../screens/auth/login_screen.dart';
@@ -97,7 +98,19 @@ final appRouter = GoRouter(
     final hasOnboarded = prefs.getBool('has_onboarded') ?? false;
     final isSplash = state.uri.path == '/splash';
     final isOnboarding = state.uri.path == '/onboarding';
+    final isAuthRoute = state.uri.path == '/login' || state.uri.path == '/register';
+    
     if (isSplash) return null;
+    final isAuthenticated = FirebaseAuth.instance.currentUser != null;
+    
+    if (!isAuthenticated) {
+      return isAuthRoute ? null : '/login';
+    }
+
+    if (isAuthRoute) {
+      return hasOnboarded ? '/dashboard' : '/onboarding';
+    }
+
     if (!hasOnboarded && !isOnboarding) {
       return '/onboarding';
     }
