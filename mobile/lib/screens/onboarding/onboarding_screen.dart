@@ -3,13 +3,17 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class OnboardingScreen extends StatefulWidget {
+import '../../core/services/firestore_service.dart';
+import '../../core/models/user_profile.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   
@@ -28,9 +32,38 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _onNext() async {
+    if (_currentPage == 1 && _nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please tell us your name to continue.')),
+      );
+      return;
+    }
+
+    if (_currentPage == 2 && _selectedGoals.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select at least one goal.')),
+      );
+      return;
+    }
+
     if (_currentPage == 2) {
+      final name = _nameController.text.trim();
+      
+      // Save to SharedPreferences for fast local lookup
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('has_onboarded', true);
+      await prefs.setString('user_name', name);
+      
+      // Save to Firestore
+      final firestoreService = ref.read(firestoreServiceProvider);
+      await firestoreService.saveUserProfile(
+        UserProfile(
+          username: name,
+          avatarEmoji: '🐱',
+          bio: 'Goals: ${_selectedGoals.join(", ")}',
+        )
+      );
+
       if (mounted) context.go('/dashboard');
     } else {
       _pageController.nextPage(
