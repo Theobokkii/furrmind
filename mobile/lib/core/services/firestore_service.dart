@@ -311,4 +311,60 @@ class FirestoreService {
               };
             }).toList());
   }
+
+  // --- FRIEND CHAT (REALTIME) ---
+  String _getChatRoomId(String user1, String user2) {
+    final List<String> users = [user1, user2];
+    users.sort();
+    return '${users[0]}_${users[1]}';
+  }
+
+  Stream<List<Map<String, dynamic>>> getFriendChatMessagesStream(String currentUsername, String friendUsername) {
+    final roomId = _getChatRoomId(currentUsername, friendUsername);
+    return _firestore
+        .collection('chats')
+        .doc(roomId)
+        .collection('messages')
+        .orderBy('timestamp', descending: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+  }
+
+  Future<void> sendFriendMessage(String currentUsername, String friendUsername, String text) async {
+    final roomId = _getChatRoomId(currentUsername, friendUsername);
+    final chatRef = _firestore.collection('chats').doc(roomId);
+    
+    // Ensure room exists
+    await chatRef.set({
+      'participants': [currentUsername, friendUsername],
+    }, SetOptions(merge: true));
+
+    // Add message
+    await chatRef.collection('messages').add({
+      'text': text,
+      'senderId': currentUsername,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> updateTypingStatus(String currentUsername, String friendUsername, bool isTyping) async {
+    final roomId = _getChatRoomId(currentUsername, friendUsername);
+    await _firestore.collection('chats').doc(roomId).set({
+      'typing_$currentUsername': isTyping,
+    }, SetOptions(merge: true));
+  }
+
+  Stream<bool> getTypingStatusStream(String currentUsername, String friendUsername) {
+    final roomId = _getChatRoomId(currentUsername, friendUsername);
+    return _firestore
+        .collection('chats')
+        .doc(roomId)
+        .snapshots()
+        .map((snapshot) {
+          if (!snapshot.exists) return false;
+          final data = snapshot.data();
+          if (data == null) return false;
+          return data['typing_$friendUsername'] == true;
+        });
+  }
 }

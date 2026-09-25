@@ -54,11 +54,28 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     }
   }
 
+  String? get _usernameError {
+    final val = _usernameController.text.trim().replaceFirst('@', '');
+    if (val.isEmpty) return 'Username cannot be empty';
+    if (!RegExp(r'^([a-zA-Z0-9_]+)#(\d{4})$').hasMatch(val)) {
+      return 'Format must be name#1234 (e.g. john#1234)';
+    }
+    return null;
+  }
+
   Future<void> _saveProfile() async {
+    if (_usernameError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fix the errors before saving.')),
+      );
+      return;
+    }
+
     final gamification = ref.read(gamificationProvider);
+    final cleanUsername = _usernameController.text.trim().replaceFirst('@', '');
     await gamification.updateProfile(
       name: _nameController.text.trim(),
-      username: _usernameController.text.trim(),
+      username: cleanUsername,
       pronouns: _pronounsController.text.trim(),
       bio: _bioController.text.trim(),
       avatarEmoji: _avatarEmoji,
@@ -389,6 +406,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           labelText: 'Username',
                           hintText: 'Used for adding friends',
                           prefixText: '@',
+                          errorText: _usernameController.text.isNotEmpty ? _usernameError : null,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(color: theme.dividerColor),
